@@ -6,78 +6,161 @@
     <title>Codex LED Widget</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-state="loading">
-    <main class="widget">
-      <div class="ambient ambient-a"></div>
-      <div class="ambient ambient-b"></div>
-
-      <header class="titlebar">
-        <div class="brand">
-          <span id="trafficLight" class="traffic-light loading" aria-hidden="true"></span>
-          <div>
-            <span id="brandName" class="brand-name">Codex 额度</span>
-            <span id="stateText" class="brand-state">读取中</span>
+  <body data-state="loading" data-mode="compact" data-view="main" data-theme="light">
+    <main id="widget" class="widget">
+      <section class="compact-widget" aria-label="Codex 5小时额度">
+        <div id="weeklyWarning" class="weekly-warning" hidden>
+          <div class="weekly-orb">
+            <strong id="weeklyRemaining">--%</strong>
+            <span id="weeklyLabel">周额度</span>
           </div>
         </div>
-        <div class="window-actions">
-          <button id="langBtn" class="text-button" title="Language" aria-label="Language">EN</button>
-          <button id="pinBtn" class="icon-button active" title="取消置顶" aria-label="取消置顶">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M14 4l6 6-3 1-4 4v4l-2 2-2-6-6-2 2-2h4l4-4 1-3z" />
-            </svg>
+        <div class="compact-orb">
+          <div class="compact-rim"></div>
+          <div id="compactLiquidFill" class="compact-liquid-fill"></div>
+          <div class="compact-shine"></div>
+          <button id="compactBall" class="compact-open" type="button" title="显示完整面板" aria-label="显示完整面板">
+            <strong id="compactRemaining">--%</strong>
+            <span id="compactReset">5h 重置 --</span>
           </button>
-          <button id="refreshBtn" class="icon-button" title="刷新" aria-label="刷新">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 12a8 8 0 0 1-13.7 5.7M4 12A8 8 0 0 1 17.7 6.3M17 3v4h-4M7 21v-4h4" />
-            </svg>
-          </button>
-          <button id="minimizeBtn" class="icon-button" title="隐藏" aria-label="隐藏">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M5 12h14" />
-            </svg>
-          </button>
-          <button id="closeBtn" class="icon-button danger" title="退出" aria-label="退出">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6 6 18" />
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      <section class="content">
-        <div id="liquidMeter" class="liquid-meter" aria-label="Codex 剩余额度">
-          <div class="glass-rim"></div>
-          <div id="liquidFill" class="liquid-fill">
-            <div class="wave wave-one"></div>
-            <div class="wave wave-two"></div>
-          </div>
-          <div class="shine"></div>
-          <div class="meter-copy">
-            <strong id="remaining">--%</strong>
-            <span id="remainingLabel">剩余</span>
-          </div>
-        </div>
-
-        <div class="quota-panel">
-          <div class="quota-card primary">
-            <span id="primaryLabel">5小时窗口</span>
-            <strong id="primaryText">--</strong>
-          </div>
-          <div class="quota-card">
-            <span id="secondaryLabel">7天窗口</span>
-            <strong id="secondaryText">--</strong>
-          </div>
-          <div class="quota-card slim">
-            <span id="planLabel">计划</span>
-            <strong id="planText">--</strong>
-          </div>
         </div>
       </section>
 
-      <footer class="status">
-        <span id="statusDot" class="status-dot loading"></span>
-        <span id="statusText">正在读取 Codex 额度...</span>
-      </footer>
+      <section class="detail-panel">
+        <div class="ambient ambient-a"></div>
+        <div class="ambient ambient-b"></div>
+
+        <header class="titlebar">
+          <div class="brand">
+            <span id="trafficLight" class="traffic-light loading" aria-hidden="true"></span>
+            <div>
+              <span id="brandName" class="brand-name">Codex 额度</span>
+              <span id="stateText" class="brand-state">读取中</span>
+            </div>
+          </div>
+          <div class="window-actions">
+            <button id="settingsBtn" class="icon-button" title="设置" aria-label="设置">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.6V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.6h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1z" />
+              </svg>
+            </button>
+            <button id="pinBtn" class="icon-button active" title="取消置顶" aria-label="取消置顶">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 4l6 6-3 1-4 4v4l-2 2-2-6-6-2 2-2h4l4-4 1-3z" />
+              </svg>
+            </button>
+            <button id="refreshBtn" class="icon-button" title="刷新" aria-label="刷新">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 12a8 8 0 0 1-13.7 5.7M4 12A8 8 0 0 1 17.7 6.3M17 3v4h-4M7 21v-4h4" />
+              </svg>
+            </button>
+            <button id="minimizeBtn" class="icon-button" title="收起" aria-label="收起">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h14" />
+              </svg>
+            </button>
+            <button id="closeBtn" class="icon-button danger" title="退出" aria-label="退出">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <section class="content">
+          <div id="liquidMeter" class="liquid-meter" aria-label="Codex 剩余额度">
+            <div class="glass-rim"></div>
+            <div id="liquidFill" class="liquid-fill">
+              <div class="wave wave-one"></div>
+              <div class="wave wave-two"></div>
+            </div>
+            <div class="shine"></div>
+            <div class="meter-copy">
+              <strong id="remaining">--%</strong>
+              <span id="remainingLabel">剩余</span>
+            </div>
+          </div>
+
+          <div class="quota-panel">
+            <div class="quota-card primary">
+              <span id="primaryLabel">5小时窗口</span>
+              <strong id="primaryText">--</strong>
+            </div>
+            <div class="quota-card">
+              <span id="secondaryLabel">7天窗口</span>
+              <strong id="secondaryText">--</strong>
+            </div>
+            <div class="quota-card slim">
+              <span id="planLabel">计划</span>
+              <strong id="planText">--</strong>
+            </div>
+          </div>
+        </section>
+
+        <footer class="status">
+          <div class="status-message">
+            <span id="statusDot" class="status-dot loading"></span>
+            <span id="statusText">正在读取 Codex 额度...</span>
+          </div>
+          <label class="auto-refresh">
+            <span id="autoRefreshLabel">自动刷新</span>
+            <select id="autoRefreshSelect" aria-label="自动刷新">
+              <option value="0">手动</option>
+              <option value="1">1分钟</option>
+              <option value="5">5分钟</option>
+              <option value="10">10分钟</option>
+              <option value="30">30分钟</option>
+              <option value="60">60分钟</option>
+            </select>
+          </label>
+        </footer>
+
+        <section id="settingsPanel" class="settings-panel" hidden>
+          <div class="settings-header">
+            <button id="settingsBackBtn" class="icon-button" title="返回" aria-label="返回">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <div>
+              <strong id="settingsTitle">设置</strong>
+              <span id="settingsSubtitle">界面与报警</span>
+            </div>
+          </div>
+
+          <div class="settings-list">
+            <label class="settings-row">
+              <span id="languageSettingLabel">语言</span>
+              <select id="languageSelect" aria-label="语言">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="themeSettingLabel">主题</span>
+              <select id="themeSelect" aria-label="主题">
+                <option value="light">浅色</option>
+                <option value="dark">深色</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="weeklyThresholdLabel">周额度报警</span>
+              <select id="weeklyThresholdSelect" aria-label="周额度报警">
+                <option value="1">1%</option>
+                <option value="3">3%</option>
+                <option value="5">5%</option>
+                <option value="10">10%</option>
+                <option value="15">15%</option>
+                <option value="20">20%</option>
+                <option value="25">25%</option>
+                <option value="30">30%</option>
+              </select>
+            </label>
+          </div>
+          <p id="settingsHint" class="settings-hint">周额度低于所选百分比时，小球旁边会显示红色告警。</p>
+        </section>
+      </section>
     </main>
 
     <script src="./renderer.js"></script>

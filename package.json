@@ -1,11 +1,19 @@
 {
-  "name": "codex-led-widget",
-  "version": "0.1.0",
-  "description": "Windows desktop LED widget for showing local Codex usage quota.",
+  "name": "codex-floating-ball",
+  "version": "0.2.0",
+  "description": "A customizable Windows floating widget for monitoring local Codex usage quota.",
   "main": "src/main/main.js",
-  "author": "Codex Quota Widget Contributors",
+  "author": "lambsusie and contributors",
   "license": "MIT",
-  "private": true,
+  "private": false,
+  "homepage": "https://github.com/lambsusie/codex-floating-ball",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lambsusie/codex-floating-ball.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lambsusie/codex-floating-ball/issues"
+  },
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
@@ -13,8 +21,8 @@
     "build:dir": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --dir"
   },
   "build": {
-    "appId": "cn.codex.quota.widget",
-    "productName": "Codex Quota Widget",
+    "appId": "io.github.lambsusie.codexfloatingball",
+    "productName": "Codex Floating Ball",
     "directories": {
       "output": "dist"
     },
@@ -34,7 +42,7 @@
       ]
     },
     "portable": {
-      "artifactName": "Codex-Quota-Widget-${version}-win-x64.exe"
+      "artifactName": "Codex-Floating-Ball-${version}-win-x64.exe"
     }
   },
   "devDependencies": {

@@ -8,7 +8,7 @@ function resolveCodexPath() {
   const localAppData = process.env.LOCALAPPDATA || "";
   const candidates = [
     process.env.CODEX_CLI_PATH,
-    path.join(localAppData, "OpenAI", "Codex", "bin", "codex.exe")
+    ...findCodexCandidates(localAppData)
   ].filter(Boolean);
 
   for (const candidate of candidates) {
@@ -16,6 +16,25 @@ function resolveCodexPath() {
   }
 
   return "codex";
+}
+
+function findCodexCandidates(localAppData) {
+  const binDir = path.join(localAppData, "OpenAI", "Codex", "bin");
+  const candidates = [path.join(binDir, "codex.exe")];
+
+  try {
+    const versionedBins = fs
+      .readdirSync(binDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(binDir, entry.name, "codex.exe"))
+      .filter((candidate) => fs.existsSync(candidate))
+      .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+    candidates.unshift(...versionedBins);
+  } catch {
+    // Fall back to the top-level Codex executable and then PATH lookup.
+  }
+
+  return candidates;
 }
 
 async function getQuota() {
@@ -179,4 +198,4 @@ function handleMessage(line, pending) {
   }
 }
 
-module.exports = { getQuota, normalizeSnapshot };
+module.exports = { getQuota, normalizeSnapshot, resolveCodexPath };
