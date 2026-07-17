@@ -129,7 +129,8 @@
             </div>
           </div>
 
-          <div class="settings-list">
+          <div class="settings-scroll">
+            <div class="settings-list">
             <label class="settings-row">
               <span id="languageSettingLabel">语言</span>
               <select id="languageSelect" aria-label="语言">
@@ -157,12 +158,80 @@
                 <option value="30">30%</option>
               </select>
             </label>
+            <label class="settings-row">
+              <span id="primaryTimeDisplayLabel">5小时额度时间</span>
+              <select id="primaryTimeDisplaySelect" aria-label="5小时额度时间">
+                <option value="duration">剩余时长</option>
+                <option value="point">重置时间点</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="secondaryTimeDisplayLabel">7天额度时间</span>
+              <select id="secondaryTimeDisplaySelect" aria-label="7天额度时间">
+                <option value="duration">剩余时长</option>
+                <option value="point">重置时间点</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="compactTimeDisplayLabel">悬浮球时间</span>
+              <select id="compactTimeDisplaySelect" aria-label="悬浮球时间">
+                <option value="duration">剩余时长</option>
+                <option value="point">重置时间点</option>
+              </select>
+            </label>
+            <label id="regularRefreshRow" class="settings-row">
+              <span id="regularRefreshLabel">常规刷新</span>
+              <select id="regularRefreshSelect" aria-label="常规刷新">
+                <option value="0">手动</option>
+                <option value="1">1分钟</option>
+                <option value="5">5分钟</option>
+                <option value="10">10分钟</option>
+                <option value="30">30分钟</option>
+                <option value="60">60分钟</option>
+              </select>
+            </label>
+            <label class="settings-row settings-toggle-row">
+              <span id="smartEnabledLabel">智能启用</span>
+              <input id="smartEnabledToggle" class="settings-toggle" type="checkbox" role="switch" aria-label="智能启用" />
+            </label>
+            <div id="smartSettingsControls" class="smart-settings" hidden>
+              <label class="settings-row">
+                <span id="smartActiveRefreshLabel">活跃刷新间隔</span>
+                <select id="smartActiveRefreshSelect" aria-label="活跃刷新间隔">
+                  <option value="1">1分钟</option>
+                  <option value="5">5分钟</option>
+                  <option value="10">10分钟</option>
+                  <option value="30">30分钟</option>
+                  <option value="60">60分钟</option>
+                </select>
+              </label>
+              <label class="settings-row">
+                <span id="smartIdleTimeoutLabel">无变化后转手动</span>
+                <select id="smartIdleTimeoutSelect" aria-label="无变化后转手动">
+                  <option value="5">5分钟</option>
+                  <option value="10">10分钟</option>
+                  <option value="15">15分钟</option>
+                  <option value="30">30分钟</option>
+                  <option value="45">45分钟</option>
+                  <option value="60">60分钟</option>
+                  <option value="90">90分钟</option>
+                  <option value="120">120分钟</option>
+                </select>
+              </label>
+              <div class="settings-row smart-status-row">
+                <span id="smartStatusLabel">当前状态</span>
+                <strong id="smartStatusText">自动刷新</strong>
+              </div>
+            </div>
+            </div>
+            <p id="settingsHint" class="settings-hint">周额度低于所选百分比时，小球旁边会显示红色告警。</p>
+            <p id="smartSettingsHint" class="settings-hint smart-settings-hint" hidden></p>
           </div>
-          <p id="settingsHint" class="settings-hint">周额度低于所选百分比时，小球旁边会显示红色告警。</p>
         </section>
       </section>
     </main>
 
+    <script src="./smart-refresh.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

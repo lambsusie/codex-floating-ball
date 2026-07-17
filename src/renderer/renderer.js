@@ -13,13 +13,20 @@ const labels = {
     close: "退出",
     settings: "设置",
     settingsTitle: "设置",
-    settingsSubtitle: "界面与报警",
+    settingsSubtitle: "界面、报警与刷新",
     back: "返回",
     language: "语言",
     theme: "主题",
     themeLight: "浅色",
     themeDark: "深色",
     weeklyAlert: "周额度报警",
+    primaryTimeDisplay: "5小时额度时间",
+    secondaryTimeDisplay: "7天额度时间",
+    compactTimeDisplay: "悬浮球时间",
+    timeDisplayDuration: "剩余时长",
+    timeDisplayPoint: "重置时间点",
+    untilReset: "距重置",
+    resetsAt: "重置于",
     settingsHint: "周额度低于所选百分比时，小球旁边会显示红色告警。",
     pinOn: "取消置顶",
     pinOff: "置顶",
@@ -33,7 +40,16 @@ const labels = {
     autoRefresh: "自动刷新",
     autoManual: "手动",
     minute: "分钟",
-    weeklyQuota: "周额度"
+    weeklyQuota: "周额度",
+    regularRefresh: "常规刷新",
+    smartEnabled: "智能启用",
+    smartActiveRefresh: "活跃刷新间隔",
+    smartIdleTimeout: "无变化后转手动",
+    smartStatus: "当前状态",
+    smartActive: "自动刷新",
+    smartPaused: "手动刷新",
+    smartManaged: "智能模式正在管理刷新间隔。",
+    smartHint: "额度连续 {idle} 无变化后会切换为手动；手动刷新会恢复 {interval} 自动刷新。"
   },
   en: {
     brand: "Codex Quota",
@@ -49,13 +65,20 @@ const labels = {
     close: "Exit",
     settings: "Settings",
     settingsTitle: "Settings",
-    settingsSubtitle: "Display and alerts",
+    settingsSubtitle: "Display, alerts, and refresh",
     back: "Back",
     language: "Language",
     theme: "Theme",
     themeLight: "Light",
     themeDark: "Dark",
     weeklyAlert: "Weekly alert",
+    primaryTimeDisplay: "5-hour quota time",
+    secondaryTimeDisplay: "7-day quota time",
+    compactTimeDisplay: "Floating ball time",
+    timeDisplayDuration: "Time remaining",
+    timeDisplayPoint: "Reset time",
+    untilReset: "resets in",
+    resetsAt: "resets at",
     settingsHint: "When weekly quota falls below the selected percent, a red alert orb appears beside the main orb.",
     pinOn: "Unpin",
     pinOff: "Pin",
@@ -69,12 +92,28 @@ const labels = {
     autoRefresh: "Auto",
     autoManual: "Manual",
     minute: "min",
-    weeklyQuota: "7d quota"
+    weeklyQuota: "7d quota",
+    regularRefresh: "Regular refresh",
+    smartEnabled: "Smart refresh",
+    smartActiveRefresh: "Active refresh interval",
+    smartIdleTimeout: "Switch to manual after",
+    smartStatus: "Current state",
+    smartActive: "Auto refreshing",
+    smartPaused: "Manual refresh",
+    smartManaged: "Smart refresh is managing this interval.",
+    smartHint: "Switches to manual after {idle} without quota changes. A manual refresh restores {interval} auto refresh."
   }
 };
 
 const DEFAULT_WEEKLY_ALERT_THRESHOLD = 5;
 const COMPACT_DOUBLE_CLICK_MS = 260;
+const AUTO_REFRESH_MINUTES = new Set([0, 1, 5, 10, 30, 60]);
+const SMART_ACTIVE_REFRESH_MINUTES = new Set([1, 5, 10, 30, 60]);
+const SMART_IDLE_MINUTES = new Set([5, 10, 15, 30, 45, 60, 90, 120]);
+const DEFAULT_SMART_ACTIVE_REFRESH_MINUTES = 1;
+const DEFAULT_SMART_IDLE_MINUTES = 30;
+const TIME_DISPLAY_MODES = new Set(["duration", "point"]);
+const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = window.smartRefreshUtils;
 
 const state = {
   lang: getStoredLanguage(),
@@ -84,9 +123,20 @@ const state = {
   mode: "compact",
   view: "main",
   weeklyAlertThreshold: getStoredWeeklyThreshold(),
+  primaryTimeDisplay: getStoredTimeDisplay("codex-led-primary-time-display"),
+  secondaryTimeDisplay: getStoredTimeDisplay("codex-led-secondary-time-display"),
+  compactTimeDisplay: getStoredTimeDisplay("codex-led-compact-time-display"),
   weeklyAlertActive: false,
   autoRefreshMinutes: 5,
   autoRefreshTimer: undefined,
+  regularRefreshMinutes: getStoredRefreshMinutes("codex-led-regular-refresh-minutes", 5, AUTO_REFRESH_MINUTES),
+  smartEnabled: getStoredSmartEnabled(),
+  smartActiveRefreshMinutes: getStoredRefreshMinutes("codex-led-smart-active-refresh-minutes", DEFAULT_SMART_ACTIVE_REFRESH_MINUTES, SMART_ACTIVE_REFRESH_MINUTES),
+  smartIdleMinutes: getStoredRefreshMinutes("codex-led-smart-idle-minutes", DEFAULT_SMART_IDLE_MINUTES, SMART_IDLE_MINUTES),
+  smartMode: getStoredSmartMode(),
+  smartLastFingerprint: localStorage.getItem("codex-led-smart-last-fingerprint"),
+  smartLastChangeAt: getStoredSmartLastChangeAt(),
+  smartIdleTimer: undefined,
   lastQuota: null
 };
 
@@ -130,7 +180,26 @@ const el = {
   themeSelect: document.getElementById("themeSelect"),
   weeklyThresholdLabel: document.getElementById("weeklyThresholdLabel"),
   weeklyThresholdSelect: document.getElementById("weeklyThresholdSelect"),
-  settingsHint: document.getElementById("settingsHint")
+  primaryTimeDisplayLabel: document.getElementById("primaryTimeDisplayLabel"),
+  primaryTimeDisplaySelect: document.getElementById("primaryTimeDisplaySelect"),
+  secondaryTimeDisplayLabel: document.getElementById("secondaryTimeDisplayLabel"),
+  secondaryTimeDisplaySelect: document.getElementById("secondaryTimeDisplaySelect"),
+  compactTimeDisplayLabel: document.getElementById("compactTimeDisplayLabel"),
+  compactTimeDisplaySelect: document.getElementById("compactTimeDisplaySelect"),
+  regularRefreshRow: document.getElementById("regularRefreshRow"),
+  regularRefreshLabel: document.getElementById("regularRefreshLabel"),
+  regularRefreshSelect: document.getElementById("regularRefreshSelect"),
+  smartEnabledLabel: document.getElementById("smartEnabledLabel"),
+  smartEnabledToggle: document.getElementById("smartEnabledToggle"),
+  smartSettingsControls: document.getElementById("smartSettingsControls"),
+  smartActiveRefreshLabel: document.getElementById("smartActiveRefreshLabel"),
+  smartActiveRefreshSelect: document.getElementById("smartActiveRefreshSelect"),
+  smartIdleTimeoutLabel: document.getElementById("smartIdleTimeoutLabel"),
+  smartIdleTimeoutSelect: document.getElementById("smartIdleTimeoutSelect"),
+  smartStatusLabel: document.getElementById("smartStatusLabel"),
+  smartStatusText: document.getElementById("smartStatusText"),
+  settingsHint: document.getElementById("settingsHint"),
+  smartSettingsHint: document.getElementById("smartSettingsHint")
 };
 
 let compactClickTimer;
@@ -153,6 +222,29 @@ function getStoredTheme() {
 
 function getStoredWeeklyThreshold() {
   return normalizeWeeklyThreshold(localStorage.getItem("codex-led-weekly-threshold"));
+}
+
+function getStoredTimeDisplay(key) {
+  const value = localStorage.getItem(key);
+  return TIME_DISPLAY_MODES.has(value) ? value : "duration";
+}
+
+function getStoredRefreshMinutes(key, fallback, allowedValues) {
+  const value = Number(localStorage.getItem(key));
+  return allowedValues.has(value) ? value : fallback;
+}
+
+function getStoredSmartEnabled() {
+  return localStorage.getItem("codex-led-smart-enabled") === "true";
+}
+
+function getStoredSmartMode() {
+  return localStorage.getItem("codex-led-smart-mode") === "manual" ? "manual" : "active";
+}
+
+function getStoredSmartLastChangeAt() {
+  const value = Number(localStorage.getItem("codex-led-smart-last-change-at"));
+  return Number.isFinite(value) && value > 0 ? value : 0;
 }
 
 function normalizeWeeklyThreshold(value) {
@@ -183,6 +275,21 @@ function applyLabels() {
   el.themeSelect.setAttribute("aria-label", t("theme"));
   el.weeklyThresholdLabel.textContent = t("weeklyAlert");
   el.weeklyThresholdSelect.setAttribute("aria-label", t("weeklyAlert"));
+  el.primaryTimeDisplayLabel.textContent = t("primaryTimeDisplay");
+  el.primaryTimeDisplaySelect.setAttribute("aria-label", t("primaryTimeDisplay"));
+  el.secondaryTimeDisplayLabel.textContent = t("secondaryTimeDisplay");
+  el.secondaryTimeDisplaySelect.setAttribute("aria-label", t("secondaryTimeDisplay"));
+  el.compactTimeDisplayLabel.textContent = t("compactTimeDisplay");
+  el.compactTimeDisplaySelect.setAttribute("aria-label", t("compactTimeDisplay"));
+  el.regularRefreshLabel.textContent = t("regularRefresh");
+  el.regularRefreshSelect.setAttribute("aria-label", t("regularRefresh"));
+  el.smartEnabledLabel.textContent = t("smartEnabled");
+  el.smartEnabledToggle.setAttribute("aria-label", t("smartEnabled"));
+  el.smartActiveRefreshLabel.textContent = t("smartActiveRefresh");
+  el.smartActiveRefreshSelect.setAttribute("aria-label", t("smartActiveRefresh"));
+  el.smartIdleTimeoutLabel.textContent = t("smartIdleTimeout");
+  el.smartIdleTimeoutSelect.setAttribute("aria-label", t("smartIdleTimeout"));
+  el.smartStatusLabel.textContent = t("smartStatus");
   el.settingsHint.textContent = t("settingsHint");
   el.compactBall.title = t("showDetail");
   el.compactBall.setAttribute("aria-label", t("showDetail"));
@@ -202,14 +309,51 @@ function updateSettingsControls() {
   el.themeSelect.options[0].textContent = t("themeLight");
   el.themeSelect.options[1].textContent = t("themeDark");
   el.weeklyThresholdSelect.value = String(state.weeklyAlertThreshold);
+  for (const select of [el.primaryTimeDisplaySelect, el.secondaryTimeDisplaySelect, el.compactTimeDisplaySelect]) {
+    select.options[0].textContent = t("timeDisplayDuration");
+    select.options[1].textContent = t("timeDisplayPoint");
+  }
+  el.primaryTimeDisplaySelect.value = state.primaryTimeDisplay;
+  el.secondaryTimeDisplaySelect.value = state.secondaryTimeDisplay;
+  el.compactTimeDisplaySelect.value = state.compactTimeDisplay;
+  el.regularRefreshSelect.value = String(state.regularRefreshMinutes);
+  el.regularRefreshSelect.disabled = state.smartEnabled;
+  el.regularRefreshRow.classList.toggle("is-managed", state.smartEnabled);
+  el.smartEnabledToggle.checked = state.smartEnabled;
+  el.smartSettingsControls.hidden = !state.smartEnabled;
+  el.smartActiveRefreshSelect.value = String(state.smartActiveRefreshMinutes);
+  el.smartIdleTimeoutSelect.value = String(state.smartIdleMinutes);
+  el.smartStatusText.textContent = formatSmartStatus();
+  el.smartSettingsHint.hidden = !state.smartEnabled;
+  el.smartSettingsHint.textContent = formatSmartHint();
 }
 
 function updateAutoRefreshOptions() {
-  for (const option of el.autoRefreshSelect.options) {
-    const minutes = Number(option.value);
-    option.textContent = minutes === 0 ? t("autoManual") : `${minutes}${t("minute")}`;
+  for (const select of [el.autoRefreshSelect, el.regularRefreshSelect, el.smartActiveRefreshSelect]) {
+    for (const option of select.options) {
+      const minutes = Number(option.value);
+      option.textContent = formatRefreshMinutes(minutes);
+    }
   }
-  el.autoRefreshSelect.value = String(state.autoRefreshMinutes);
+  const displayedMinutes = getDisplayedRefreshMinutes(state);
+  el.autoRefreshSelect.value = String(displayedMinutes);
+  el.autoRefreshSelect.disabled = false;
+  el.autoRefreshSelect.title = state.smartEnabled ? t("smartActiveRefresh") : t("autoRefresh");
+}
+
+function formatRefreshMinutes(minutes) {
+  return minutes === 0 ? t("autoManual") : `${minutes}${t("minute")}`;
+}
+
+function formatSmartStatus() {
+  if (state.smartMode === "manual") return t("smartPaused");
+  return `${t("smartActive")} · ${formatRefreshMinutes(state.smartActiveRefreshMinutes)}`;
+}
+
+function formatSmartHint() {
+  return t("smartHint")
+    .replace("{idle}", formatRefreshMinutes(state.smartIdleMinutes))
+    .replace("{interval}", formatRefreshMinutes(state.smartActiveRefreshMinutes));
 }
 
 function updatePinButton(value) {
@@ -239,13 +383,178 @@ function applyTheme() {
   el.body.dataset.theme = state.theme;
 }
 
-async function refreshQuota() {
+async function setEffectiveAutoRefreshMinutes(value) {
+  const minutes = Number(value);
+  if (!AUTO_REFRESH_MINUTES.has(minutes)) return;
+
+  if (state.autoRefreshMinutes !== minutes) {
+    state.autoRefreshMinutes = await window.codexQuota.setAutoRefreshMinutes(minutes);
+  }
+
+  configureAutoRefresh();
+  updateAutoRefreshOptions();
+  updateSettingsControls();
+}
+
+function setSmartMode(mode) {
+  state.smartMode = mode === "manual" ? "manual" : "active";
+  localStorage.setItem("codex-led-smart-mode", state.smartMode);
+}
+
+function setSmartLastChangeAt(value = Date.now()) {
+  state.smartLastChangeAt = value;
+  localStorage.setItem("codex-led-smart-last-change-at", String(value));
+}
+
+function setSmartLastFingerprint(value) {
+  state.smartLastFingerprint = value;
+  localStorage.setItem("codex-led-smart-last-fingerprint", value);
+}
+
+function clearSmartIdleTimer() {
+  if (!state.smartIdleTimer) return;
+  clearTimeout(state.smartIdleTimer);
+  state.smartIdleTimer = undefined;
+}
+
+function scheduleSmartIdleTimeout() {
+  clearSmartIdleTimer();
+  if (!state.smartEnabled || state.smartMode !== "active") return;
+
+  if (!state.smartLastChangeAt) setSmartLastChangeAt();
+  const idleMs = state.smartIdleMinutes * 60 * 1000;
+  const remainingMs = Math.max(0, idleMs - (Date.now() - state.smartLastChangeAt));
+  state.smartIdleTimer = setTimeout(() => {
+    void pauseSmartRefreshIfIdle();
+  }, remainingMs);
+}
+
+async function pauseSmartRefreshIfIdle() {
+  if (!state.smartEnabled || state.smartMode !== "active") return;
+
+  const idleMs = state.smartIdleMinutes * 60 * 1000;
+  if (Date.now() - state.smartLastChangeAt < idleMs) {
+    scheduleSmartIdleTimeout();
+    return;
+  }
+
+  await pauseSmartRefresh();
+}
+
+async function pauseSmartRefresh() {
+  setSmartMode("manual");
+  clearSmartIdleTimer();
+  await setEffectiveAutoRefreshMinutes(0);
+}
+
+async function activateSmartRefresh() {
+  setSmartMode("active");
+  setSmartLastChangeAt();
+  await setEffectiveAutoRefreshMinutes(state.smartActiveRefreshMinutes);
+  scheduleSmartIdleTimeout();
+}
+
+function observeSmartQuota(quota) {
+  if (!state.smartEnabled) return;
+
+  const fingerprint = getQuotaUsageFingerprint(quota);
+  if (!state.smartLastFingerprint || state.smartLastFingerprint !== fingerprint) {
+    setSmartLastFingerprint(fingerprint);
+    setSmartLastChangeAt();
+  }
+
+  if (state.smartMode === "active") scheduleSmartIdleTimeout();
+}
+
+async function setRegularRefreshMinutes(value) {
+  const minutes = Number(value);
+  if (!AUTO_REFRESH_MINUTES.has(minutes)) return;
+
+  state.regularRefreshMinutes = minutes;
+  localStorage.setItem("codex-led-regular-refresh-minutes", String(minutes));
+  if (!state.smartEnabled) await setEffectiveAutoRefreshMinutes(minutes);
+  updateSettingsControls();
+}
+
+async function setSmartEnabled(value) {
+  state.smartEnabled = Boolean(value);
+  localStorage.setItem("codex-led-smart-enabled", String(state.smartEnabled));
+
+  if (state.smartEnabled) {
+    await activateSmartRefresh();
+    await refreshQuota();
+    return;
+  }
+
+  clearSmartIdleTimer();
+  await setEffectiveAutoRefreshMinutes(state.regularRefreshMinutes);
+}
+
+async function setSmartActiveRefreshMinutes(value) {
+  const minutes = Number(value);
+  if (!SMART_ACTIVE_REFRESH_MINUTES.has(minutes)) return;
+
+  state.smartActiveRefreshMinutes = minutes;
+  localStorage.setItem("codex-led-smart-active-refresh-minutes", String(minutes));
+  if (state.smartEnabled) {
+    await activateSmartRefresh();
+  }
+  updateAutoRefreshOptions();
+  updateSettingsControls();
+}
+
+async function setMainAutoRefreshMinutes(value) {
+  const minutes = Number(value);
+  if (!AUTO_REFRESH_MINUTES.has(minutes)) return;
+
+  if (!state.smartEnabled) {
+    await setRegularRefreshMinutes(minutes);
+    return;
+  }
+
+  if (minutes === 0) {
+    await pauseSmartRefresh();
+    return;
+  }
+
+  await setSmartActiveRefreshMinutes(minutes);
+}
+
+function setTimeDisplay(scope, value) {
+  if (!TIME_DISPLAY_MODES.has(value)) return;
+
+  const keys = {
+    primary: ["primaryTimeDisplay", "codex-led-primary-time-display"],
+    secondary: ["secondaryTimeDisplay", "codex-led-secondary-time-display"],
+    compact: ["compactTimeDisplay", "codex-led-compact-time-display"]
+  };
+  const setting = keys[scope];
+  if (!setting) return;
+
+  state[setting[0]] = value;
+  localStorage.setItem(setting[1], value);
+  updateSettingsControls();
+  if (state.lastQuota) renderQuota(state.lastQuota);
+}
+
+function setSmartIdleMinutes(value) {
+  const minutes = Number(value);
+  if (!SMART_IDLE_MINUTES.has(minutes)) return;
+
+  state.smartIdleMinutes = minutes;
+  localStorage.setItem("codex-led-smart-idle-minutes", String(minutes));
+  if (state.smartEnabled && state.smartMode === "active") scheduleSmartIdleTimeout();
+  updateSettingsControls();
+}
+
+async function refreshQuota({ userInitiated = false } = {}) {
   if (state.loading) return;
   state.loading = true;
-  setStatus("loading", t("loading"), t("reading"));
-  el.compactReset.textContent = state.lang === "zh" ? "读取中" : "Loading";
 
   try {
+    if (userInitiated && state.smartEnabled) await activateSmartRefresh();
+    setStatus("loading", t("loading"), t("reading"));
+    el.compactReset.textContent = state.lang === "zh" ? "读取中" : "Loading";
     const quota = await window.codexQuota.getQuota();
     renderQuota(quota);
   } catch (error) {
@@ -267,6 +576,7 @@ async function refreshQuota() {
 
 function renderQuota(quota) {
   state.lastQuota = quota;
+  observeSmartQuota(quota);
   const remaining = normalizePercent(quota.remainingPercent);
   const primaryRemaining = normalizePercent(quota.primary?.remainingPercent ?? quota.remainingPercent);
   setFill(remaining);
@@ -324,13 +634,36 @@ function formatWindow(window, kind) {
   if (!window) return "--";
   const remaining = normalizePercent(window.remainingPercent);
   const used = normalizePercent(window.usedPercent);
-  const reset = window.resetsAt ? (kind === "secondary" ? formatResetAsDays(window.resetsAt) : formatReset(window.resetsAt)) : "--";
-  return `${remaining}% ${t("left")} / ${used}% ${t("used")} · ${t("reset")} ${reset}`;
+  const mode = kind === "secondary" ? state.secondaryTimeDisplay : state.primaryTimeDisplay;
+  const reset = formatResetDisplay(window.resetsAt, mode, kind === "secondary");
+  const resetLabel = mode === "point" ? t("resetsAt") : t("untilReset");
+  return `${remaining}% ${t("left")} / ${used}% ${t("used")} · ${resetLabel} ${reset}`;
 }
 
 function formatCompactReset(window) {
-  const reset = window?.resetsAt ? formatReset(window.resetsAt) : "--";
-  return state.lang === "zh" ? `5h 重置 ${reset}` : `5h reset ${reset}`;
+  const reset = formatResetDisplay(window?.resetsAt, state.compactTimeDisplay, false);
+  if (state.compactTimeDisplay === "point") {
+    return state.lang === "zh" ? `5h 重置 ${reset}` : `5h reset ${reset}`;
+  }
+  return state.lang === "zh" ? `5h 剩余 ${reset}` : `5h left ${reset}`;
+}
+
+function formatResetDisplay(value, mode, useDays) {
+  if (!value) return "--";
+  if (mode === "point") return formatResetPoint(value);
+  return useDays ? formatResetAsDays(value) : formatReset(value);
+}
+
+function formatResetPoint(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return new Intl.DateTimeFormat(state.lang === "zh" ? "zh-CN" : "en-US", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).format(date);
 }
 
 function formatReset(value) {
@@ -445,7 +778,7 @@ function handleCompactBallClick() {
   if (compactClickTimer) {
     clearTimeout(compactClickTimer);
     compactClickTimer = undefined;
-    refreshQuota();
+    refreshQuota({ userInitiated: true });
     return;
   }
 
@@ -467,7 +800,14 @@ el.settingsBackBtn.addEventListener("click", () => updateDetailView("main"));
 el.languageSelect.addEventListener("change", () => setLanguage(el.languageSelect.value));
 el.themeSelect.addEventListener("change", () => setTheme(el.themeSelect.value));
 el.weeklyThresholdSelect.addEventListener("change", () => setWeeklyAlertThreshold(el.weeklyThresholdSelect.value));
-el.refreshBtn.addEventListener("click", refreshQuota);
+el.primaryTimeDisplaySelect.addEventListener("change", () => setTimeDisplay("primary", el.primaryTimeDisplaySelect.value));
+el.secondaryTimeDisplaySelect.addEventListener("change", () => setTimeDisplay("secondary", el.secondaryTimeDisplaySelect.value));
+el.compactTimeDisplaySelect.addEventListener("change", () => setTimeDisplay("compact", el.compactTimeDisplaySelect.value));
+el.regularRefreshSelect.addEventListener("change", () => void setRegularRefreshMinutes(el.regularRefreshSelect.value));
+el.smartEnabledToggle.addEventListener("change", () => void setSmartEnabled(el.smartEnabledToggle.checked));
+el.smartActiveRefreshSelect.addEventListener("change", () => void setSmartActiveRefreshMinutes(el.smartActiveRefreshSelect.value));
+el.smartIdleTimeoutSelect.addEventListener("change", () => setSmartIdleMinutes(el.smartIdleTimeoutSelect.value));
+el.refreshBtn.addEventListener("click", () => refreshQuota({ userInitiated: true }));
 el.minimizeBtn.addEventListener("click", async () => {
   updateWindowMode(await window.codexQuota.minimize());
 });
@@ -475,14 +815,11 @@ el.closeBtn.addEventListener("click", () => window.codexQuota.close());
 el.pinBtn.addEventListener("click", async () => {
   updatePinButton(await window.codexQuota.setAlwaysOnTop(!state.alwaysOnTop));
 });
-el.autoRefreshSelect.addEventListener("change", async () => {
-  const minutes = Number(el.autoRefreshSelect.value);
-  state.autoRefreshMinutes = await window.codexQuota.setAutoRefreshMinutes(minutes);
-  configureAutoRefresh();
-  updateAutoRefreshOptions();
+el.autoRefreshSelect.addEventListener("change", () => {
+  void setMainAutoRefreshMinutes(el.autoRefreshSelect.value);
 });
 
-window.codexQuota.onRefresh(refreshQuota);
+window.codexQuota.onRefresh(() => refreshQuota({ userInitiated: true }));
 window.codexQuota.onAlwaysOnTopChanged(updatePinButton);
 window.codexQuota.onWindowModeChanged(updateWindowMode);
 
@@ -493,7 +830,7 @@ function configureAutoRefresh() {
   }
 
   if (state.autoRefreshMinutes > 0) {
-    state.autoRefreshTimer = setInterval(refreshQuota, state.autoRefreshMinutes * 60 * 1000);
+    state.autoRefreshTimer = setInterval(() => refreshQuota(), state.autoRefreshMinutes * 60 * 1000);
   }
 }
 
@@ -501,7 +838,18 @@ function configureAutoRefresh() {
   updateWindowMode(await window.codexQuota.getWindowMode());
   updatePinButton(await window.codexQuota.getAlwaysOnTop());
   state.autoRefreshMinutes = await window.codexQuota.getAutoRefreshMinutes();
-  configureAutoRefresh();
+  if (state.smartEnabled) {
+    if (state.smartMode === "manual") {
+      await setEffectiveAutoRefreshMinutes(0);
+    } else {
+      await setEffectiveAutoRefreshMinutes(state.smartActiveRefreshMinutes);
+      scheduleSmartIdleTimeout();
+    }
+  } else {
+    state.regularRefreshMinutes = state.autoRefreshMinutes;
+    localStorage.setItem("codex-led-regular-refresh-minutes", String(state.regularRefreshMinutes));
+    configureAutoRefresh();
+  }
   applyTheme();
   updateDetailView("main");
   applyLabels();

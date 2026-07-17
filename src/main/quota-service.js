@@ -1,8 +1,10 @@
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const { version: appVersion } = require("../../package.json");
 
 const DEFAULT_TIMEOUT_MS = 12000;
+let appServerClientPromise;
 
 function resolveCodexPath() {
   const localAppData = process.env.LOCALAPPDATA || "";
@@ -93,7 +95,28 @@ function clampPercent(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function requestRateLimits() {
+async function requestRateLimits() {
+  const client = await getAppServerClient();
+  try {
+    return await client.send("account/rateLimits/read");
+  } catch (error) {
+    appServerClientPromise = undefined;
+    client.close();
+    throw error;
+  }
+}
+
+function getAppServerClient() {
+  if (!appServerClientPromise) {
+    appServerClientPromise = createAppServerClient().catch((error) => {
+      appServerClientPromise = undefined;
+      throw error;
+    });
+  }
+  return appServerClientPromise;
+}
+
+async function createAppServerClient() {
   const codexPath = resolveCodexPath();
   const child = spawn(codexPath, ["app-server", "--listen", "stdio://"], {
     stdio: ["pipe", "pipe", "pipe"],
@@ -103,20 +126,22 @@ function requestRateLimits() {
   let buffer = "";
   let stderr = "";
   let nextId = 1;
+  let closed = false;
   const pending = new Map();
 
-  const cleanup = () => {
+  const rejectPending = (error) => {
     for (const request of pending.values()) {
       clearTimeout(request.timer);
+      request.reject(error);
     }
     pending.clear();
-    if (!child.killed) child.kill();
   };
 
   const send = (method, params) => {
+    if (closed) return Promise.reject(new Error("Codex app-server is not running."));
+
     const id = nextId++;
     const payload = params === undefined ? { id, method } : { id, method, params };
-    child.stdin.write(`${JSON.stringify(payload)}\n`);
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -124,8 +149,23 @@ function requestRateLimits() {
         reject(new Error(`Codex request timed out: ${method}`));
       }, DEFAULT_TIMEOUT_MS);
       pending.set(id, { resolve, reject, timer });
+      child.stdin.write(`${JSON.stringify(payload)}\n`, (error) => {
+        if (!error) return;
+        clearTimeout(timer);
+        pending.delete(id);
+        reject(error);
+      });
     });
   };
+
+  const close = () => {
+    if (closed) return;
+    closed = true;
+    rejectPending(new Error("Codex app-server connection closed."));
+    if (!child.stdin.destroyed) child.stdin.end();
+  };
+
+  child.stdin.on("error", () => {});
 
   child.stdout.on("data", (chunk) => {
     buffer += chunk.toString("utf8");
@@ -139,41 +179,42 @@ function requestRateLimits() {
   });
 
   child.stderr.on("data", (chunk) => {
-    stderr += chunk.toString("utf8");
+    stderr = `${stderr}${chunk.toString("utf8")}`.slice(-8000);
   });
 
-  return new Promise((resolve, reject) => {
-    child.once("error", (error) => {
-      cleanup();
-      reject(error);
-    });
-
-    child.once("exit", (code) => {
-      if (pending.size > 0) {
-        cleanup();
-        reject(new Error(stderr || `Codex app-server exited with code ${code}`));
-      }
-    });
-
-    (async () => {
-      try {
-        await send("initialize", {
-          clientInfo: {
-            name: "codex-led-widget",
-            title: "Codex LED Widget",
-            version: "0.1.0"
-          },
-          capabilities: null
-        });
-        const result = await send("account/rateLimits/read");
-        cleanup();
-        resolve(result);
-      } catch (error) {
-        cleanup();
-        reject(new Error(stderr || error.message));
-      }
-    })();
+  child.once("error", (error) => {
+    closed = true;
+    rejectPending(error);
+    appServerClientPromise = undefined;
   });
+
+  child.once("exit", (code) => {
+    closed = true;
+    rejectPending(new Error(stderr || `Codex app-server exited with code ${code}`));
+    appServerClientPromise = undefined;
+  });
+
+  try {
+    await send("initialize", {
+      clientInfo: {
+        name: "codex-floating-ball",
+        title: "Codex Floating Ball",
+        version: appVersion
+      },
+      capabilities: null
+    });
+  } catch (error) {
+    close();
+    throw new Error(stderr || error.message);
+  }
+
+  return { send, close };
+}
+
+function shutdownQuotaService() {
+  const clientPromise = appServerClientPromise;
+  appServerClientPromise = undefined;
+  if (clientPromise) clientPromise.then((client) => client.close()).catch(() => {});
 }
 
 function handleMessage(line, pending) {
@@ -198,4 +239,4 @@ function handleMessage(line, pending) {
   }
 }
 
-module.exports = { getQuota, normalizeSnapshot, resolveCodexPath };
+module.exports = { getQuota, normalizeSnapshot, resolveCodexPath, shutdownQuotaService };

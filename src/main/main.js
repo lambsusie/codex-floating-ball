@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, screen } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
-const { getQuota, resolveCodexPath } = require("./quota-service");
+const { getQuota, resolveCodexPath, shutdownQuotaService } = require("./quota-service");
 
 const COMPACT_SIZE = { width: 132, height: 132 };
 const COMPACT_ALERT_SIZE = { width: 226, height: 132 };
@@ -39,7 +39,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      backgroundThrottling: false
     }
   });
   mainWindow.setHasShadow(false);
@@ -303,3 +304,5 @@ app.whenReady().then(() => {
 app.on("window-all-closed", (event) => {
   event.preventDefault();
 });
+
+app.on("before-quit", shutdownQuotaService);

@@ -16,9 +16,12 @@
 - 单击悬浮球打开完整界面，双击立即手动刷新额度。
 - 可直接拖动悬浮球到桌面任意位置，位置会自动记住。
 - 完整界面失去焦点时自动返回悬浮球状态。
-- 分别显示 5 小时额度和 7 天额度；7 天重置时间以“天 + 小时”显示。
+- 分别显示 5 小时额度和 7 天额度；两者都可独立选择显示剩余时长或具体重置时间点。
+- 悬浮球可单独选择显示 5 小时额度的剩余时长或重置时间点。
 - 可自定义周额度预警阈值；低于阈值时会在悬浮球旁显示告警提示。
 - 支持设置自动刷新间隔，也可随时手动刷新。
+- 智能刷新：可设置活跃时的刷新间隔和无额度变化超时；长期无变化会转为手动，双击悬浮球或手动刷新会恢复自动刷新。主界面下拉框可直接修改活跃刷新间隔，并与设置页同步。
+- 智能模式切换为手动后，主界面下拉框会明确显示“手动”；重新选择分钟数即可恢复自动刷新。
 - 设置页支持中文/English、浅色/深色模式和周额度预警阈值。
 - 使用托盘图标，不会在任务栏常驻窗口图标。
 
@@ -71,9 +74,12 @@ A customizable Windows desktop floating widget for monitoring the usage quota of
 - Single-click the ball to open the detail panel; double-click it to refresh immediately.
 - Drag the ball directly to any position on the desktop. The position is remembered.
 - The detail panel automatically returns to compact mode when it loses focus.
-- Separate 5-hour and 7-day quota views, with the 7-day reset time shown in days and hours.
+- Separate 5-hour and 7-day quota views. Each can independently show either time remaining or the exact reset time.
+- The floating ball can independently show either the 5-hour time remaining or its reset time.
 - An adjustable weekly-quota alert threshold. A second warning ball appears when the weekly quota is low.
 - Configurable automatic refresh interval, plus a manual refresh button.
+- Smart refresh with configurable active interval and idle timeout. It switches to manual after quota stays unchanged, then resumes auto refresh after a manual refresh or a double-click on the ball. The main-panel interval selector edits the same active interval as the settings page.
+- When smart refresh pauses, the main selector clearly shows Manual; selecting an interval resumes automatic refresh.
 - Settings for Chinese/English, light/dark theme, and the weekly warning threshold.
 - Tray icon support without a permanent taskbar button.
 

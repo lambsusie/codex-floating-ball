@@ -493,6 +493,11 @@ body[data-state="error"] .compact-liquid-fill {
   -webkit-app-region: no-drag;
 }
 
+.auto-refresh select:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 body[data-view="settings"] .content,
 body[data-view="settings"] .status {
   display: none;
@@ -507,6 +512,13 @@ body[data-view="main"] .settings-panel {
   z-index: 1;
   margin-top: 18px;
   -webkit-app-region: no-drag;
+}
+
+.settings-scroll {
+  max-height: 204px;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
 }
 
 .settings-header {
@@ -531,7 +543,7 @@ body[data-view="main"] .settings-panel {
 .settings-list {
   display: grid;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 0;
 }
 
 .settings-row {
@@ -562,6 +574,72 @@ body[data-view="main"] .settings-panel {
   background: rgba(255, 255, 255, 0.7);
   font: inherit;
   outline: none;
+}
+
+.settings-row.is-managed {
+  opacity: 0.52;
+}
+
+.settings-row.is-managed select {
+  cursor: not-allowed;
+}
+
+.settings-toggle-row {
+  cursor: pointer;
+}
+
+.settings-toggle {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+  border: 1px solid rgba(90, 112, 150, 0.2);
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.35);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.settings-toggle::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.26);
+  content: "";
+  transition: transform 160ms ease;
+}
+
+.settings-toggle:checked {
+  border-color: rgba(37, 99, 235, 0.5);
+  background: #2563eb;
+}
+
+.settings-toggle:checked::after {
+  transform: translateX(18px);
+}
+
+.settings-toggle:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.5);
+  outline-offset: 2px;
+}
+
+.smart-settings {
+  display: grid;
+  gap: 10px;
+}
+
+.smart-status-row strong {
+  color: #2563eb;
+  font-size: 13px;
+}
+
+.smart-settings-hint {
+  color: #526070;
 }
 
 .settings-hint {
@@ -650,6 +728,20 @@ body[data-theme="dark"] .settings-row select {
   border-color: rgba(148, 163, 184, 0.2);
   color: #e9eefb;
   background: rgba(30, 41, 59, 0.72);
+}
+
+body[data-theme="dark"] .settings-toggle {
+  border-color: rgba(148, 163, 184, 0.32);
+  background: rgba(71, 85, 105, 0.86);
+}
+
+body[data-theme="dark"] .settings-toggle:checked {
+  border-color: rgba(96, 165, 250, 0.65);
+  background: #2563eb;
+}
+
+body[data-theme="dark"] .smart-status-row strong {
+  color: #93c5fd;
 }
 
 body[data-theme="dark"] .icon-button.active {
