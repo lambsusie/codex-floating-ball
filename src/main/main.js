@@ -236,6 +236,7 @@ function createTray() {
   const icon = nativeImage.createFromDataURL(
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAK0lEQVR42mNk+M9Qz0AEYBxVSFUBCzAyMjL8Z2BgYJjFqIGjBo4aOAIAgV4EfpO0k7EAAAAASUVORK5CYII="
   );
+  if (process.platform === "darwin") icon.setTemplateImage(true);
   tray = new Tray(icon);
   tray.setToolTip("Codex Quota Widget");
   rebuildTrayMenu();
@@ -278,6 +279,7 @@ function toggleWindow() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin") app.dock?.hide();
   createWindow();
   createTray();
 

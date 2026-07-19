@@ -6,13 +6,14 @@
 
 ## 中文说明
 
-一个用于查看本机 Codex 用量额度的 Windows 桌面悬浮组件。
+一个用于查看本机 Codex 用量额度的 Windows 与 macOS 桌面悬浮组件。
 
 > 本项目 Fork 自 [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget)，在保留原项目 MIT 协议的基础上进行了独立的功能与界面增强。感谢原项目作者。
 
 ### 主要功能
 
 - 默认以紧凑悬浮球显示 5 小时额度剩余百分比和重置时间。
+- 悬浮球采用 2 倍超采样渲染与柔化透明边缘，在桌面缩放下保持更平滑的圆形轮廓。
 - 单击悬浮球打开完整界面，双击立即手动刷新额度。
 - 可直接拖动悬浮球到桌面任意位置，位置会自动记住。
 - 完整界面失去焦点时自动返回悬浮球状态。
@@ -27,17 +28,29 @@
 
 ### 下载与使用
 
-请前往 [Releases](../../releases) 下载最新的 Windows `.exe` 文件。
+请前往 [Releases](../../releases) 下载对应平台的安装包：
+
+- Windows：`Codex-Floating-Ball-*-win-x64.exe`
+- Apple 芯片 Mac：`Codex-Floating-Ball-*-mac-arm64.dmg`
+- Intel 芯片 Mac：`Codex-Floating-Ball-*-mac-x64.dmg`
+
+Windows：
 
 1. 双击运行 `Codex-Floating-Ball-*-win-x64.exe`。
 2. 等待组件读取本机 Codex 用量。
 3. 拖动悬浮球放到合适的位置。
 4. 单击查看详情和设置；双击立即刷新。
 
+macOS：
+
+1. 打开对应芯片架构的 `.dmg`，将应用拖入“应用程序”。
+2. 当前构建未使用 Apple Developer 证书签名。若首次打开被 macOS 阻止，请前往“系统设置 > 隐私与安全性”，点击“仍要打开”。
+3. 等待组件读取本机 Codex 用量，然后按与 Windows 版相同的方式使用。
+
 ### 运行要求
 
-- Windows 10 或 Windows 11
-- 已在本机安装并登录 Codex CLI
+- Windows 10/11，或 macOS 12 及以上版本
+- 已在本机安装并登录 Codex 桌面应用或 Codex CLI
 
 本组件通过本机 Codex CLI 读取用量信息，不要求、不保存，也不会上传你的 Codex Token。
 
@@ -51,7 +64,13 @@ npm start
 生成便携版 Windows `.exe`：
 
 ```powershell
-npm run build
+npm run build:win
+```
+
+在 macOS 上生成 Intel 与 Apple 芯片版 `.dmg`：
+
+```bash
+npm run build:mac
 ```
 
 生成用于本机测试的解包目录：
@@ -60,17 +79,20 @@ npm run build
 npm run build:dir
 ```
 
+没有 Mac 时，可在 GitHub 仓库的 `Actions` 页面手动运行 `Build macOS packages`。完成后下载 `arm64` 和 `x64` 两个构建产物，解压得到 `.dmg`，再添加到对应版本的 GitHub Release。
+
 ---
 
 ## English
 
-A customizable Windows desktop floating widget for monitoring the usage quota of the locally installed Codex CLI.
+A customizable Windows and macOS desktop floating widget for monitoring the usage quota of the locally installed Codex CLI.
 
 > This is a fork and enhanced version of [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget). It retains the upstream project's MIT license and gives full credit to the original project.
 
 ### Features
 
 - A compact floating ball as the normal desktop state, showing the remaining 5-hour quota and its reset time.
+- The floating ball uses 2x supersampled rendering and feathered transparency for smoother edges on scaled displays.
 - Single-click the ball to open the detail panel; double-click it to refresh immediately.
 - Drag the ball directly to any position on the desktop. The position is remembered.
 - The detail panel automatically returns to compact mode when it loses focus.
@@ -85,17 +107,29 @@ A customizable Windows desktop floating widget for monitoring the usage quota of
 
 ### Download and use
 
-Download the latest Windows `.exe` from [Releases](../../releases).
+Download the package for your platform from [Releases](../../releases):
+
+- Windows: `Codex-Floating-Ball-*-win-x64.exe`
+- Apple silicon Mac: `Codex-Floating-Ball-*-mac-arm64.dmg`
+- Intel Mac: `Codex-Floating-Ball-*-mac-x64.dmg`
+
+Windows:
 
 1. Run `Codex-Floating-Ball-*-win-x64.exe`.
 2. Wait for the widget to read the local Codex quota.
 3. Drag the floating ball to place it on the desktop.
 4. Single-click the ball for details and settings, or double-click to refresh.
 
+macOS:
+
+1. Open the `.dmg` for your Mac architecture and drag the app into Applications.
+2. This build is unsigned. If macOS blocks the first launch, open System Settings > Privacy & Security and choose Open Anyway.
+3. Wait for the widget to read the local Codex quota, then use it the same way as the Windows build.
+
 ### Requirements
 
-- Windows 10 or Windows 11
-- Codex CLI installed locally and already signed in
+- Windows 10/11 or macOS 12 and later
+- Codex desktop app or Codex CLI installed locally and already signed in
 
 The widget reads quota data from the local Codex CLI. It does not ask for, save, or upload a Codex token.
 
@@ -109,7 +143,13 @@ npm start
 Build a portable Windows executable:
 
 ```powershell
-npm run build
+npm run build:win
+```
+
+Build Intel and Apple silicon DMG packages on macOS:
+
+```bash
+npm run build:mac
 ```
 
 Build an unpacked application directory for local testing:
@@ -117,6 +157,8 @@ Build an unpacked application directory for local testing:
 ```powershell
 npm run build:dir
 ```
+
+If you do not have a Mac, manually run `Build macOS packages` from the repository's `Actions` page. Download and unzip the `arm64` and `x64` artifacts, then attach both `.dmg` files to the matching GitHub Release.
 
 ---
 

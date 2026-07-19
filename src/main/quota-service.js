@@ -1,5 +1,6 @@
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const { version: appVersion } = require("../../package.json");
 
@@ -7,10 +8,9 @@ const DEFAULT_TIMEOUT_MS = 12000;
 let appServerClientPromise;
 
 function resolveCodexPath() {
-  const localAppData = process.env.LOCALAPPDATA || "";
   const candidates = [
     process.env.CODEX_CLI_PATH,
-    ...findCodexCandidates(localAppData)
+    ...findCodexCandidates()
   ].filter(Boolean);
 
   for (const candidate of candidates) {
@@ -20,15 +20,22 @@ function resolveCodexPath() {
   return "codex";
 }
 
-function findCodexCandidates(localAppData) {
-  const binDir = path.join(localAppData, "OpenAI", "Codex", "bin");
-  const candidates = [path.join(binDir, "codex.exe")];
+function findCodexCandidates({
+  platform = process.platform,
+  localAppData = process.env.LOCALAPPDATA || "",
+  homeDir = os.homedir()
+} = {}) {
+  if (platform === "darwin") return findMacCodexCandidates(homeDir);
+  if (platform !== "win32") return findUnixCodexCandidates(homeDir);
+
+  const binDir = path.win32.join(localAppData, "OpenAI", "Codex", "bin");
+  const candidates = [path.win32.join(binDir, "codex.exe")];
 
   try {
     const versionedBins = fs
       .readdirSync(binDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
-      .map((entry) => path.join(binDir, entry.name, "codex.exe"))
+      .map((entry) => path.win32.join(binDir, entry.name, "codex.exe"))
       .filter((candidate) => fs.existsSync(candidate))
       .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
     candidates.unshift(...versionedBins);
@@ -37,6 +44,25 @@ function findCodexCandidates(localAppData) {
   }
 
   return candidates;
+}
+
+function findMacCodexCandidates(homeDir) {
+  return [
+    "/Applications/Codex.app/Contents/Resources/codex",
+    path.posix.join(homeDir, "Applications", "Codex.app", "Contents", "Resources", "codex"),
+    "/opt/homebrew/bin/codex",
+    "/usr/local/bin/codex",
+    path.posix.join(homeDir, ".local", "bin", "codex"),
+    path.posix.join(homeDir, ".npm-global", "bin", "codex")
+  ];
+}
+
+function findUnixCodexCandidates(homeDir) {
+  return [
+    "/usr/local/bin/codex",
+    path.posix.join(homeDir, ".local", "bin", "codex"),
+    path.posix.join(homeDir, ".npm-global", "bin", "codex")
+  ];
 }
 
 async function getQuota() {
@@ -239,4 +265,10 @@ function handleMessage(line, pending) {
   }
 }
 
-module.exports = { getQuota, normalizeSnapshot, resolveCodexPath, shutdownQuotaService };
+module.exports = {
+  findCodexCandidates,
+  getQuota,
+  normalizeSnapshot,
+  resolveCodexPath,
+  shutdownQuotaService
+};

@@ -1,7 +1,7 @@
 {
   "name": "codex-floating-ball",
-  "version": "0.4.1",
-  "description": "A customizable Windows floating widget for monitoring local Codex usage quota.",
+  "version": "0.4.2",
+  "description": "A customizable Windows and macOS floating widget for monitoring local Codex usage quota.",
   "main": "src/main/main.js",
   "author": "lambsusie and contributors",
   "license": "MIT",
@@ -18,8 +18,10 @@
     "dev": "electron .",
     "start": "electron .",
     "test": "node --test",
-    "build": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
-    "build:dir": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --dir"
+    "build": "npm run build:win",
+    "build:win": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
+    "build:mac": "electron-builder --mac dmg --x64 --arm64",
+    "build:dir": "electron-builder --dir"
   },
   "build": {
     "appId": "io.github.lambsusie.codexfloatingball",
@@ -44,6 +46,26 @@
     },
     "portable": {
       "artifactName": "Codex-Floating-Ball-${version}-win-x64.exe"
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "identity": null,
+      "hardenedRuntime": false,
+      "extendInfo": {
+        "LSUIElement": true
+      },
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "artifactName": "Codex-Floating-Ball-${version}-mac-${arch}.${ext}"
     }
   },
   "devDependencies": {
