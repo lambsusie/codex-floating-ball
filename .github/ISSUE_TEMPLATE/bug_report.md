@@ -1,3 +1,10 @@
+---
+name: Bug report
+about: Report a reproducible problem in Codex Floating Ball
+title: "[Bug] "
+labels: bug
+assignees: ""
+---
 
 ## Environment
 
