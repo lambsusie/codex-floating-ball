@@ -1,6 +1,16 @@
 # Codex Floating Ball
 
-[中文](#中文说明) | [English](#english)
+> A lightweight, privacy-friendly desktop companion for monitoring local Codex CLI usage quotas on Windows and macOS.
+
+[![Latest Release](https://img.shields.io/github/v/release/lambsusie/codex-floating-ball)](../../releases/latest)
+[![License: MIT](https://img.shields.io/github/license/lambsusie/codex-floating-ball)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
+![Electron](https://img.shields.io/badge/Electron-desktop%20app-blue)
+
+**[Download Latest Release](../../releases/latest)** · [中文](#中文说明) · [English](#english)
+
+> **Privacy:** Codex Floating Ball reads quota information locally through the Codex CLI. It does not request, store, or upload your Codex Token.
+
 
 ---
 
