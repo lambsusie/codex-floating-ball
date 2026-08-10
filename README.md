@@ -10,6 +10,12 @@
 
 > 本项目 Fork 自 [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget)，在保留原项目 MIT 协议的基础上进行了独立的功能与界面增强。感谢原项目作者。
 
+### 为什么做这个项目
+
+Codex CLI 很适合日常开发，但持续查看 5 小时额度和 7 天额度并不总是方便。Codex Floating Ball 希望提供一个轻量、常驻、无需频繁切换窗口的桌面 companion tool，让用户能够更直观地了解本机 Codex 使用额度与重置时间。
+
+本项目强调本地化和隐私友好：额度信息通过本机 Codex CLI 读取，不要求、不保存，也不会上传你的 Codex Token。
+
 ### 主要功能
 
 - 默认以紧凑悬浮球显示 5 小时额度剩余百分比和重置时间。
@@ -81,6 +87,12 @@ npm run build:dir
 
 没有 Mac 时，可在 GitHub 仓库的 `Actions` 页面手动运行 `Build macOS packages`。完成后下载 `arm64` 和 `x64` 两个构建产物，解压得到 `.dmg`，再添加到对应版本的 GitHub Release。
 
+### 参与贡献
+
+欢迎提交 Bug、功能建议和 Pull Request。开始贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+如果你发现可能涉及凭证、Token、本地文件访问或其他安全边界的问题，请不要公开披露敏感细节，先阅读 [SECURITY.md](SECURITY.md)。
+
 ---
 
 ## English
@@ -88,6 +100,12 @@ npm run build:dir
 A customizable Windows and macOS desktop floating widget for monitoring the usage quota of the locally installed Codex CLI.
 
 > This is a fork and enhanced version of [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget). It retains the upstream project's MIT license and gives full credit to the original project.
+
+### Why this project exists
+
+Codex CLI is well suited to everyday development, but continuously checking the 5-hour and 7-day usage quotas is not always convenient. Codex Floating Ball provides a lightweight desktop companion that keeps quota information and reset timing visible without requiring users to repeatedly switch context.
+
+The project is designed to be local-first and privacy-friendly. Quota information is read through the locally installed Codex CLI. The application does not ask for, store, or upload your Codex Token.
 
 ### Features
 
@@ -159,6 +177,12 @@ npm run build:dir
 ```
 
 If you do not have a Mac, manually run `Build macOS packages` from the repository's `Actions` page. Download and unzip the `arm64` and `x64` artifacts, then attach both `.dmg` files to the matching GitHub Release.
+
+### Contributing
+
+Bug reports, feature requests, and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.
+
+For vulnerabilities or issues involving credentials, tokens, local file access, or another security boundary, please avoid publishing sensitive details before reading [SECURITY.md](SECURITY.md).
 
 ---
 
