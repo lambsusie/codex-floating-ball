@@ -11,79 +11,210 @@
 
 > **Privacy:** Codex Floating Ball reads quota information locally through the Codex CLI. It does not request, store, or upload your Codex Token.
 
+<p align="center">
+  <img
+    src="docs/images/codex-floating-ball-hero.png"
+    alt="Codex Floating Ball — desktop quota companion for Codex CLI"
+    width="100%"
+  >
+</p>
 
 ---
 
 ## 中文说明
 
-一个用于查看本机 Codex 用量额度的 Windows 与 macOS 桌面悬浮组件。
+Codex Floating Ball 是一个用于查看本机 Codex 使用额度的 Windows 与 macOS 桌面悬浮组件。
 
-> 本项目 Fork 自 [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget)，在保留原项目 MIT 协议的基础上进行了独立的功能与界面增强。感谢原项目作者。
+它以一个轻量悬浮球作为日常状态，需要更多信息时可以单击展开完整面板，查看额度、重置时间、刷新状态和相关设置。
+
+> 本项目 Fork 自 [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget)，在保留原项目 MIT 协议和 attribution 的基础上进行了独立的功能、交互与跨平台增强。感谢原项目作者。
 
 ### 为什么做这个项目
 
-Codex CLI 很适合日常开发，但持续查看 5 小时额度和 7 天额度并不总是方便。Codex Floating Ball 希望提供一个轻量、常驻、无需频繁切换窗口的桌面 companion tool，让用户能够更直观地了解本机 Codex 使用额度与重置时间。
+在持续使用 Codex 时，频繁切换窗口查看剩余额度并不方便。
 
-本项目强调本地化和隐私友好：额度信息通过本机 Codex CLI 读取，不要求、不保存，也不会上传你的 Codex Token。
+Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工作的 companion tool，让用户可以随时了解 Codex 剩余额度、重置时间和当前刷新状态。
+
+项目采用本地优先的方式读取额度信息：
+
+- 通过本机已登录的 Codex CLI 获取额度数据
+- 不要求用户输入 Codex Token
+- 不保存 Codex Token
+- 不上传 Codex Token
+
+---
+
+### 项目亮点
+
+#### 智能刷新
+
+普通的额度监控工具通常只能按照固定时间间隔持续轮询。Codex Floating Ball 提供了一套更适合实际 Codex 工作流的 **Smart Refresh / 智能刷新机制**。
+
+你可以分别设置：
+
+- **活跃刷新间隔**，例如每 `1 分钟` 自动刷新一次额度
+- **额度无变化超时**，用于判断当前是否已经停止持续使用 Codex
+
+在运行 Codex 项目或长任务期间，组件会按照设定的间隔持续更新额度，方便及时观察额度变化。
+
+如果经过设定时间后额度始终没有变化，组件会自动：
+
+**自动刷新 → 手动刷新模式**
+
+这样在 Codex 工作结束后，组件不会继续长期在后台按分钟重复查询。
+
+当你再次：
+
+- 双击悬浮球
+- 点击手动刷新
+
+智能自动刷新会重新启用。
+
+这使组件能够在两种状态之间自动切换：
+
+**活跃使用 Codex → 高频关注额度变化**
+
+**停止使用 Codex → 自动减少不必要的后台刷新**
+
+主界面的刷新间隔选择器与设置页面中的智能刷新配置保持同步；智能刷新暂停后，主界面会明确显示为手动模式。
+
+#### 灵活的重置时间显示
+
+不同额度窗口适合不同的时间表达方式。
+
+Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的显示方式：
+
+- 悬浮球
+- 5 小时额度
+- 7 天 / 周额度
+
+每一处都可以选择：
+
+**显示距离重置还有多久**
+
+例如：
+
+```text
+4小时12分
+```
+
+或者：
+
+**显示具体重置时刻**
+
+例如：
+
+```text
+08/18 08:15
+```
+
+三处设置互相独立。
+
+例如，你可以让：
+
+- 悬浮球显示具体重置时刻
+- 5 小时额度显示剩余小时
+- 周额度显示具体日期和时间
+
+这样既适合快速判断“还要多久恢复额度”，也方便根据具体重置时间规划后续 Codex 使用。
+
+> Codex 实际提供的额度窗口可能随官方策略发生变化。组件显示的额度数据以本机 Codex CLI 当前能够提供的信息为准。
+
+---
 
 ### 主要功能
 
-- 默认以紧凑悬浮球显示 5 小时额度剩余百分比和重置时间。
-- 悬浮球采用 2 倍超采样渲染与柔化透明边缘，在桌面缩放下保持更平滑的圆形轮廓。
-- 单击悬浮球打开完整界面，双击立即手动刷新额度。
-- 可直接拖动悬浮球到桌面任意位置，位置会自动记住。
-- 完整界面失去焦点时自动返回悬浮球状态。
-- 分别显示 5 小时额度和 7 天额度；两者都可独立选择显示剩余时长或具体重置时间点。
-- 悬浮球可单独选择显示 5 小时额度的剩余时长或重置时间点。
-- 可自定义周额度预警阈值；低于阈值时会在悬浮球旁显示告警提示。
-- 支持设置自动刷新间隔，也可随时手动刷新。
-- 智能刷新：可设置活跃时的刷新间隔和无额度变化超时；长期无变化会转为手动，双击悬浮球或手动刷新会恢复自动刷新。主界面下拉框可直接修改活跃刷新间隔，并与设置页同步。
-- 智能模式切换为手动后，主界面下拉框会明确显示“手动”；重新选择分钟数即可恢复自动刷新。
-- 设置页支持中文/English、浅色/深色模式和周额度预警阈值。
-- 使用托盘图标，不会在任务栏常驻窗口图标。
+- 以紧凑悬浮球作为默认桌面状态，快速查看剩余额度。
+- 单击悬浮球展开完整额度面板。
+- 双击悬浮球立即刷新额度。
+- 可直接拖动悬浮球到桌面任意位置，并自动记住位置。
+- 完整面板失去焦点后自动返回悬浮球状态。
+- 支持 5 小时和 7 天 / 周额度信息显示。
+- 悬浮球、5 小时额度和周额度可分别设置为显示剩余时间或具体重置时刻。
+- 支持智能刷新，可配置活跃刷新间隔和额度无变化超时。
+- 额度长期无变化后自动切换为手动刷新，手动刷新或双击悬浮球后恢复智能自动刷新。
+- 主界面的刷新间隔与设置页同步。
+- 可设置周额度预警阈值。
+- 周额度低于设定阈值时，可通过额外告警提示提醒用户。
+- 支持中文 / English。
+- 支持浅色 / 深色主题。
+- 使用托盘图标，不会在任务栏长期占用普通窗口位置。
+- 悬浮球采用高质量圆形渲染，在高分辨率和桌面缩放环境下保持更平滑的边缘效果。
+- Windows 与 macOS 均提供对应构建。
+
+---
 
 ### 下载与使用
 
-请前往 [Releases](../../releases) 下载对应平台的安装包：
+请前往 **[Releases](../../releases/latest)** 下载最新版本。
 
-- Windows：`Codex-Floating-Ball-*-win-x64.exe`
-- Apple 芯片 Mac：`Codex-Floating-Ball-*-mac-arm64.dmg`
-- Intel 芯片 Mac：`Codex-Floating-Ball-*-mac-x64.dmg`
+| 平台 | 安装包 |
+| --- | --- |
+| Windows 10/11 x64 | `Codex-Floating-Ball-*-win-x64.exe` |
+| Apple Silicon Mac | `Codex-Floating-Ball-*-mac-arm64.dmg` |
+| Intel Mac | `Codex-Floating-Ball-*-mac-x64.dmg` |
 
-Windows：
+#### Windows
 
-1. 双击运行 `Codex-Floating-Ball-*-win-x64.exe`。
-2. 等待组件读取本机 Codex 用量。
-3. 拖动悬浮球放到合适的位置。
-4. 单击查看详情和设置；双击立即刷新。
+1. 下载 Windows x64 `.exe`。
+2. 双击运行 Codex Floating Ball。
+3. 等待组件读取本机 Codex 使用额度。
+4. 拖动悬浮球到合适的位置。
+5. 单击查看详细额度和设置，双击立即刷新。
 
-macOS：
+#### macOS
 
-1. 打开对应芯片架构的 `.dmg`，将应用拖入“应用程序”。
-2. 当前构建未使用 Apple Developer 证书签名。若首次打开被 macOS 阻止，请前往“系统设置 > 隐私与安全性”，点击“仍要打开”。
-3. 等待组件读取本机 Codex 用量，然后按与 Windows 版相同的方式使用。
+1. 根据 Mac 架构下载 Apple Silicon `arm64` 或 Intel `x64` `.dmg`。
+2. 打开 `.dmg`，将 Codex Floating Ball 拖入“应用程序”。
+3. 启动应用并等待读取本机 Codex 使用额度。
+
+当前 macOS 构建未使用 Apple Developer 证书签名或公证。
+
+如果首次启动被 macOS 阻止，请前往：
+
+**系统设置 → 隐私与安全性 → 仍要打开**
+
+> macOS 构建目前主要通过 GitHub Actions 生成，尚未在大量真实 Mac 设备上完成兼容性验证。如遇问题，欢迎通过 [Issues](../../issues) 反馈。
+
+---
 
 ### 运行要求
 
 - Windows 10/11，或 macOS 12 及以上版本
-- 已在本机安装并登录 Codex 桌面应用或 Codex CLI
+- 本机已安装并登录 Codex CLI 或兼容的 Codex 桌面环境
+- Node.js 与 npm（仅从源码运行或构建时需要）
 
-本组件通过本机 Codex CLI 读取用量信息，不要求、不保存，也不会上传你的 Codex Token。
+本组件通过本机 Codex CLI 读取额度信息，不要求、不保存，也不会上传你的 Codex Token。
 
-### 从源码构建
+---
 
-```powershell
+### 从源码运行
+
+安装依赖：
+
+```bash
 npm install
+```
+
+启动：
+
+```bash
 npm start
 ```
 
-生成便携版 Windows `.exe`：
+运行测试：
+
+```bash
+npm test
+```
+
+生成 Windows x64 版本：
 
 ```powershell
 npm run build:win
 ```
 
-在 macOS 上生成 Intel 与 Apple 芯片版 `.dmg`：
+生成 Intel 与 Apple Silicon macOS `.dmg`：
 
 ```bash
 npm run build:mac
@@ -91,111 +222,249 @@ npm run build:mac
 
 生成用于本机测试的解包目录：
 
-```powershell
+```bash
 npm run build:dir
 ```
 
-没有 Mac 时，可在 GitHub 仓库的 `Actions` 页面手动运行 `Build macOS packages`。完成后下载 `arm64` 和 `x64` 两个构建产物，解压得到 `.dmg`，再添加到对应版本的 GitHub Release。
+如果没有 Mac，可以在仓库的 **Actions** 页面手动运行 `Build macOS packages`，完成后下载对应的 `arm64` 和 `x64` 构建产物。
+
+---
 
 ### 参与贡献
 
-欢迎提交 Bug、功能建议和 Pull Request。开始贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+Bug 报告、功能建议、文档改进和 Pull Request 都欢迎。
 
-如果你发现可能涉及凭证、Token、本地文件访问或其他安全边界的问题，请不要公开披露敏感细节，先阅读 [SECURITY.md](SECURITY.md)。
+开始贡献前请阅读：
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+
+如果发现可能涉及 Token、凭证、本地文件访问、命令执行或其他安全边界的问题，请不要在公开 Issue 中发布敏感信息。
 
 ---
 
 ## English
 
-A customizable Windows and macOS desktop floating widget for monitoring the usage quota of the locally installed Codex CLI.
+Codex Floating Ball is a Windows and macOS desktop companion for monitoring the usage quota of the locally installed Codex CLI.
 
-> This is a fork and enhanced version of [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget). It retains the upstream project's MIT license and gives full credit to the original project.
+It stays compact as a floating desktop ball during normal use and expands into a detailed quota panel when more information or controls are needed.
+
+> This project is a fork and independently maintained enhanced edition of [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget). It retains the upstream MIT license and attribution while adding independent functionality, interaction improvements, and cross-platform support.
 
 ### Why this project exists
 
-Codex CLI is well suited to everyday development, but continuously checking the 5-hour and 7-day usage quotas is not always convenient. Codex Floating Ball provides a lightweight desktop companion that keeps quota information and reset timing visible without requiring users to repeatedly switch context.
+Frequently switching windows just to check remaining Codex quota is inconvenient during active development.
 
-The project is designed to be local-first and privacy-friendly. Quota information is read through the locally installed Codex CLI. The application does not ask for, store, or upload your Codex Token.
+Codex Floating Ball provides a lightweight, always-available desktop companion for keeping quota status, reset timing, and refresh state visible without interrupting the coding workflow.
+
+The project follows a local-first approach:
+
+- Quota information is read through the locally installed Codex CLI
+- It does not ask for your Codex Token
+- It does not store your Codex Token
+- It does not upload your Codex Token
+
+---
+
+### Highlights
+
+#### Smart refresh
+
+Traditional quota monitors often poll continuously at a fixed interval. Codex Floating Ball includes a configurable **Smart Refresh** mechanism designed around real periods of active and inactive Codex usage.
+
+You can configure:
+
+- An **active refresh interval**, for example once every `1 minute`
+- A **quota inactivity timeout**, used to detect when active Codex usage has stopped
+
+While Codex tasks are running, the widget refreshes at the selected interval so quota changes can be monitored closely.
+
+If the quota remains unchanged for the configured period, the app automatically switches from:
+
+**automatic refresh → manual refresh mode**
+
+This prevents the widget from continuing unnecessary minute-by-minute background polling after active Codex work has finished.
+
+Smart refresh automatically becomes active again when you:
+
+- Double-click the floating ball
+- Trigger a manual refresh
+
+The result is a workflow that naturally adapts between:
+
+**Active Codex usage → frequent quota monitoring**
+
+**Inactive period → quieter manual mode**
+
+The refresh interval selector in the main panel stays synchronized with the Smart Refresh settings. When Smart Refresh pauses, the main interface clearly indicates manual mode.
+
+#### Flexible reset-time display
+
+Different quota windows are easier to understand using different representations of reset time.
+
+Codex Floating Ball lets you independently configure the reset-time display for:
+
+- The floating ball
+- The 5-hour quota
+- The 7-day / weekly quota
+
+Each can display either:
+
+**Time remaining until reset**
+
+For example:
+
+```text
+4h 12m
+```
+
+or:
+
+**The exact reset time**
+
+For example:
+
+```text
+08/18 08:15
+```
+
+These settings are independent.
+
+For example, you can configure:
+
+- The floating ball to show the exact reset time
+- The 5-hour quota to show time remaining
+- The weekly quota to show its scheduled date and time
+
+This makes it easy both to answer “how long until reset?” at a glance and to plan future Codex usage around a specific reset time.
+
+> The quota windows exposed by Codex may change over time. Codex Floating Ball displays the quota information currently available from the locally installed Codex CLI.
+
+---
 
 ### Features
 
-- A compact floating ball as the normal desktop state, showing the remaining 5-hour quota and its reset time.
-- The floating ball uses 2x supersampled rendering and feathered transparency for smoother edges on scaled displays.
-- Single-click the ball to open the detail panel; double-click it to refresh immediately.
-- Drag the ball directly to any position on the desktop. The position is remembered.
-- The detail panel automatically returns to compact mode when it loses focus.
-- Separate 5-hour and 7-day quota views. Each can independently show either time remaining or the exact reset time.
-- The floating ball can independently show either the 5-hour time remaining or its reset time.
-- An adjustable weekly-quota alert threshold. A second warning ball appears when the weekly quota is low.
-- Configurable automatic refresh interval, plus a manual refresh button.
-- Smart refresh with configurable active interval and idle timeout. It switches to manual after quota stays unchanged, then resumes auto refresh after a manual refresh or a double-click on the ball. The main-panel interval selector edits the same active interval as the settings page.
-- When smart refresh pauses, the main selector clearly shows Manual; selecting an interval resumes automatic refresh.
-- Settings for Chinese/English, light/dark theme, and the weekly warning threshold.
-- Tray icon support without a permanent taskbar button.
+- Compact floating-ball desktop mode for quickly viewing remaining quota.
+- Single-click the floating ball to open the detailed quota panel.
+- Double-click the ball to refresh immediately.
+- Drag the floating ball anywhere on the desktop; its position is remembered.
+- The detailed panel automatically returns to compact mode when it loses focus.
+- Support for 5-hour and 7-day / weekly quota information when available.
+- Independent reset-time display settings for the floating ball, 5-hour quota, and weekly quota.
+- Smart Refresh with configurable active interval and quota-inactivity timeout.
+- Automatically switches to manual refresh after quota remains unchanged and resumes Smart Refresh after manual refresh or double-click.
+- Main-panel refresh controls stay synchronized with the settings page.
+- Adjustable weekly-quota alert threshold.
+- Additional warning notification when weekly quota falls below the configured threshold.
+- Chinese and English interface.
+- Light and dark themes.
+- Tray icon support without keeping a normal application window permanently in the taskbar.
+- Smooth floating-ball rendering designed for high-resolution and scaled desktop environments.
+- Windows and macOS builds.
+
+---
 
 ### Download and use
 
-Download the package for your platform from [Releases](../../releases):
+Download the latest version from **[Releases](../../releases/latest)**.
 
-- Windows: `Codex-Floating-Ball-*-win-x64.exe`
-- Apple silicon Mac: `Codex-Floating-Ball-*-mac-arm64.dmg`
-- Intel Mac: `Codex-Floating-Ball-*-mac-x64.dmg`
+| Platform | Package |
+| --- | --- |
+| Windows 10/11 x64 | `Codex-Floating-Ball-*-win-x64.exe` |
+| Apple silicon Mac | `Codex-Floating-Ball-*-mac-arm64.dmg` |
+| Intel Mac | `Codex-Floating-Ball-*-mac-x64.dmg` |
 
-Windows:
+#### Windows
 
-1. Run `Codex-Floating-Ball-*-win-x64.exe`.
-2. Wait for the widget to read the local Codex quota.
-3. Drag the floating ball to place it on the desktop.
-4. Single-click the ball for details and settings, or double-click to refresh.
+1. Download the Windows x64 `.exe`.
+2. Run Codex Floating Ball.
+3. Wait for the widget to read the locally available Codex quota.
+4. Drag the floating ball to your preferred desktop position.
+5. Single-click for details and settings, or double-click to refresh.
 
-macOS:
+#### macOS
 
-1. Open the `.dmg` for your Mac architecture and drag the app into Applications.
-2. This build is unsigned. If macOS blocks the first launch, open System Settings > Privacy & Security and choose Open Anyway.
-3. Wait for the widget to read the local Codex quota, then use it the same way as the Windows build.
+1. Download the `arm64` package for Apple silicon or the `x64` package for an Intel Mac.
+2. Open the `.dmg` and drag Codex Floating Ball into Applications.
+3. Launch the application and wait for it to read the locally available Codex quota.
+
+The current macOS builds are unsigned and are not notarized with an Apple Developer certificate.
+
+If macOS blocks the first launch, open:
+
+**System Settings → Privacy & Security → Open Anyway**
+
+> macOS packages are currently built primarily through GitHub Actions and have not yet been validated across a broad range of physical Mac hardware. Compatibility reports are welcome through [Issues](../../issues).
+
+---
 
 ### Requirements
 
-- Windows 10/11 or macOS 12 and later
-- Codex desktop app or Codex CLI installed locally and already signed in
+- Windows 10/11 or macOS 12+
+- Codex CLI or a compatible Codex desktop environment installed locally and already signed in
+- Node.js and npm only when running or building from source
 
-The widget reads quota data from the local Codex CLI. It does not ask for, save, or upload a Codex token.
+Codex Floating Ball reads quota information from the locally installed Codex CLI. It does not request, store, or upload your Codex Token.
+
+---
 
 ### Build from source
 
-```powershell
+Install dependencies:
+
+```bash
 npm install
+```
+
+Start the app:
+
+```bash
 npm start
 ```
 
-Build a portable Windows executable:
+Run tests:
+
+```bash
+npm test
+```
+
+Build the Windows x64 package:
 
 ```powershell
 npm run build:win
 ```
 
-Build Intel and Apple silicon DMG packages on macOS:
+Build Intel and Apple silicon macOS packages:
 
 ```bash
 npm run build:mac
 ```
 
-Build an unpacked application directory for local testing:
+Build an unpacked application directory:
 
-```powershell
+```bash
 npm run build:dir
 ```
 
-If you do not have a Mac, manually run `Build macOS packages` from the repository's `Actions` page. Download and unzip the `arm64` and `x64` artifacts, then attach both `.dmg` files to the matching GitHub Release.
+If you do not have access to a Mac, you can manually run `Build macOS packages` from the repository's **Actions** page and download the generated `arm64` and `x64` artifacts.
+
+---
 
 ### Contributing
 
-Bug reports, feature requests, and pull requests are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.
+Bug reports, feature requests, documentation improvements, and pull requests are welcome.
 
-For vulnerabilities or issues involving credentials, tokens, local file access, or another security boundary, please avoid publishing sensitive details before reading [SECURITY.md](SECURITY.md).
+Please read:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)
+
+For vulnerabilities or issues involving credentials, tokens, local file access, command execution, or another security boundary, please avoid publishing sensitive details in a public issue.
 
 ---
 
 ## License and attribution
 
-This repository is a GitHub fork of [codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget), maintained as an independent enhanced edition. Upstream code and this fork are distributed under the MIT License; see [LICENSE](LICENSE).
+This repository is a GitHub fork of [codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget), maintained as an independently enhanced edition.
+
+Upstream code and this fork are distributed under the MIT License. See [LICENSE](LICENSE) for details.
