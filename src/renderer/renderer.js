@@ -49,7 +49,24 @@ const labels = {
     smartActive: "自动刷新",
     smartPaused: "手动刷新",
     smartManaged: "智能模式正在管理刷新间隔。",
-    smartHint: "额度连续 {idle} 无变化后会切换为手动；手动刷新会恢复 {interval} 自动刷新。"
+    smartHint: "额度连续 {idle} 无变化后会切换为手动；手动刷新会恢复 {interval} 自动刷新。",
+    history: "额度历史",
+    historyTitle: "额度消耗",
+    historySubtitle: "每次刷新自动记录",
+    historyEmpty: "这一时段还没有记录",
+    historyLoadError: "读取历史失败",
+    periodDay: "日",
+    periodWeek: "周",
+    periodMonth: "月",
+    periodCycle: "5h",
+    primaryUsed: "5小时已用",
+    secondaryUsed: "7天已用",
+    historyPoints: "{count} 个记录点",
+    previousPeriod: "上一时段",
+    nextPeriod: "下一时段",
+    compactSize: "悬浮球大小",
+    quotaFontSize: "额度字号",
+    resetFontSize: "重置时间字号"
   },
   en: {
     brand: "Codex Quota",
@@ -101,7 +118,24 @@ const labels = {
     smartActive: "Auto refreshing",
     smartPaused: "Manual refresh",
     smartManaged: "Smart refresh is managing this interval.",
-    smartHint: "Switches to manual after {idle} without quota changes. A manual refresh restores {interval} auto refresh."
+    smartHint: "Switches to manual after {idle} without quota changes. A manual refresh restores {interval} auto refresh.",
+    history: "Quota history",
+    historyTitle: "Quota usage",
+    historySubtitle: "Recorded on every refresh",
+    historyEmpty: "No records in this period",
+    historyLoadError: "Could not load history",
+    periodDay: "Day",
+    periodWeek: "Week",
+    periodMonth: "Month",
+    periodCycle: "5h",
+    primaryUsed: "5-hour used",
+    secondaryUsed: "7-day used",
+    historyPoints: "{count} points",
+    previousPeriod: "Previous period",
+    nextPeriod: "Next period",
+    compactSize: "Floating ball size",
+    quotaFontSize: "Quota font size",
+    resetFontSize: "Reset font size"
   }
 };
 
@@ -114,6 +148,7 @@ const DEFAULT_SMART_ACTIVE_REFRESH_MINUTES = 1;
 const DEFAULT_SMART_IDLE_MINUTES = 30;
 const TIME_DISPLAY_MODES = new Set(["duration", "point"]);
 const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = window.smartRefreshUtils;
+const { buildConsumptionSeries, getPeriodRange, shiftPeriod } = window.historyUtils;
 
 const state = {
   lang: getStoredLanguage(),
@@ -137,6 +172,11 @@ const state = {
   smartLastFingerprint: localStorage.getItem("codex-led-smart-last-fingerprint"),
   smartLastChangeAt: getStoredSmartLastChangeAt(),
   smartIdleTimer: undefined,
+  compactAppearance: { ballSize: 120, quotaFontSize: 27, resetFontSize: 11 },
+  historyPeriod: "day",
+  historyAnchor: new Date(),
+  historyRecords: [],
+  historyLoading: false,
   lastQuota: null
 };
 
@@ -152,6 +192,7 @@ const el = {
   trafficLight: document.getElementById("trafficLight"),
   brandName: document.getElementById("brandName"),
   stateText: document.getElementById("stateText"),
+  historyBtn: document.getElementById("historyBtn"),
   settingsBtn: document.getElementById("settingsBtn"),
   pinBtn: document.getElementById("pinBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
@@ -186,6 +227,15 @@ const el = {
   secondaryTimeDisplaySelect: document.getElementById("secondaryTimeDisplaySelect"),
   compactTimeDisplayLabel: document.getElementById("compactTimeDisplayLabel"),
   compactTimeDisplaySelect: document.getElementById("compactTimeDisplaySelect"),
+  compactSizeLabel: document.getElementById("compactSizeLabel"),
+  compactSizeRange: document.getElementById("compactSizeRange"),
+  compactSizeValue: document.getElementById("compactSizeValue"),
+  quotaFontSizeLabel: document.getElementById("quotaFontSizeLabel"),
+  quotaFontSizeRange: document.getElementById("quotaFontSizeRange"),
+  quotaFontSizeValue: document.getElementById("quotaFontSizeValue"),
+  resetFontSizeLabel: document.getElementById("resetFontSizeLabel"),
+  resetFontSizeRange: document.getElementById("resetFontSizeRange"),
+  resetFontSizeValue: document.getElementById("resetFontSizeValue"),
   regularRefreshRow: document.getElementById("regularRefreshRow"),
   regularRefreshLabel: document.getElementById("regularRefreshLabel"),
   regularRefreshSelect: document.getElementById("regularRefreshSelect"),
@@ -199,12 +249,28 @@ const el = {
   smartStatusLabel: document.getElementById("smartStatusLabel"),
   smartStatusText: document.getElementById("smartStatusText"),
   settingsHint: document.getElementById("settingsHint"),
-  smartSettingsHint: document.getElementById("smartSettingsHint")
+  smartSettingsHint: document.getElementById("smartSettingsHint"),
+  historyPanel: document.getElementById("historyPanel"),
+  historyBackBtn: document.getElementById("historyBackBtn"),
+  historyTitle: document.getElementById("historyTitle"),
+  historySubtitle: document.getElementById("historySubtitle"),
+  historyPeriodButtons: [...document.querySelectorAll("[data-period]")],
+  historyPrevBtn: document.getElementById("historyPrevBtn"),
+  historyNextBtn: document.getElementById("historyNextBtn"),
+  historyRangeLabel: document.getElementById("historyRangeLabel"),
+  historyChart: document.getElementById("historyChart"),
+  historyEmpty: document.getElementById("historyEmpty"),
+  historyPrimaryLegend: document.getElementById("historyPrimaryLegend"),
+  historySecondaryLegend: document.getElementById("historySecondaryLegend"),
+  historyPointCount: document.getElementById("historyPointCount")
 };
 
 let compactClickTimer;
 let compactDragState;
 let suppressCompactClick = false;
+let compactAppearanceTimer;
+let compactAppearanceRequest = 0;
+let historyLoadRequest = 0;
 
 function t(key) {
   return labels[state.lang][key];
@@ -263,6 +329,8 @@ function applyLabels() {
   el.autoRefreshSelect.setAttribute("aria-label", t("autoRefresh"));
   updateAutoRefreshOptions();
   updateSettingsControls();
+  el.historyBtn.title = t("history");
+  el.historyBtn.setAttribute("aria-label", t("history"));
   el.settingsBtn.title = t("settings");
   el.settingsBtn.setAttribute("aria-label", t("settings"));
   el.settingsBackBtn.title = t("back");
@@ -290,6 +358,9 @@ function applyLabels() {
   el.smartIdleTimeoutLabel.textContent = t("smartIdleTimeout");
   el.smartIdleTimeoutSelect.setAttribute("aria-label", t("smartIdleTimeout"));
   el.smartStatusLabel.textContent = t("smartStatus");
+  el.compactSizeLabel.textContent = t("compactSize");
+  el.quotaFontSizeLabel.textContent = t("quotaFontSize");
+  el.resetFontSizeLabel.textContent = t("resetFontSize");
   el.settingsHint.textContent = t("settingsHint");
   el.compactBall.title = t("showDetail");
   el.compactBall.setAttribute("aria-label", t("showDetail"));
@@ -300,6 +371,20 @@ function applyLabels() {
   el.minimizeBtn.setAttribute("aria-label", t("hide"));
   el.closeBtn.title = t("close");
   el.closeBtn.setAttribute("aria-label", t("close"));
+  el.historyBackBtn.title = t("back");
+  el.historyBackBtn.setAttribute("aria-label", t("back"));
+  el.historyTitle.textContent = t("historyTitle");
+  el.historySubtitle.textContent = t("historySubtitle");
+  el.historyEmpty.textContent = t("historyEmpty");
+  el.historyPrimaryLegend.textContent = t("primaryUsed");
+  el.historySecondaryLegend.textContent = t("secondaryUsed");
+  el.historyPrevBtn.setAttribute("aria-label", t("previousPeriod"));
+  el.historyNextBtn.setAttribute("aria-label", t("nextPeriod"));
+  const periodLabels = ["periodDay", "periodWeek", "periodMonth", "periodCycle"];
+  el.historyPeriodButtons.forEach((button, index) => {
+    button.textContent = t(periodLabels[index]);
+  });
+  updateHistoryPeriodControls();
   updatePinButton(state.alwaysOnTop);
 }
 
@@ -326,6 +411,7 @@ function updateSettingsControls() {
   el.smartStatusText.textContent = formatSmartStatus();
   el.smartSettingsHint.hidden = !state.smartEnabled;
   el.smartSettingsHint.textContent = formatSmartHint();
+  applyCompactAppearance(state.compactAppearance);
 }
 
 function updateAutoRefreshOptions() {
@@ -374,13 +460,227 @@ async function setWindowMode(mode) {
 }
 
 function updateDetailView(view) {
-  state.view = view === "settings" ? "settings" : "main";
+  state.view = view === "settings" || view === "history" ? view : "main";
   el.body.dataset.view = state.view;
   el.settingsPanel.hidden = state.view !== "settings";
+  el.historyPanel.hidden = state.view !== "history";
+  el.settingsBtn.classList.toggle("active", state.view === "settings");
+  el.historyBtn.classList.toggle("active", state.view === "history");
+  if (state.view === "history") void loadHistory();
 }
 
 function applyTheme() {
   el.body.dataset.theme = state.theme;
+  if (state.view === "history") drawHistoryChart();
+}
+
+function applyCompactAppearance(value) {
+  const appearance = {
+    ballSize: Number(value?.ballSize) || 120,
+    quotaFontSize: Number(value?.quotaFontSize) || 27,
+    resetFontSize: Number(value?.resetFontSize) || 11
+  };
+  state.compactAppearance = appearance;
+
+  const root = document.documentElement.style;
+  root.setProperty("--compact-size", `${appearance.ballSize}px`);
+  root.setProperty("--compact-render-size", `${appearance.ballSize * 2}px`);
+  root.setProperty("--compact-quota-font-render", `${appearance.quotaFontSize * 2}px`);
+  root.setProperty("--compact-reset-font-render", `${appearance.resetFontSize * 2}px`);
+  root.setProperty("--compact-text-width", `${Math.max(80, appearance.ballSize - 24) * 2}px`);
+
+  el.compactSizeRange.value = String(appearance.ballSize);
+  el.quotaFontSizeRange.max = String(Math.floor(appearance.ballSize * 0.35));
+  el.resetFontSizeRange.max = String(Math.floor(appearance.ballSize * 0.14));
+  el.quotaFontSizeRange.value = String(appearance.quotaFontSize);
+  el.resetFontSizeRange.value = String(appearance.resetFontSize);
+  el.compactSizeValue.textContent = `${appearance.ballSize} px`;
+  el.quotaFontSizeValue.textContent = `${appearance.quotaFontSize} px`;
+  el.resetFontSizeValue.textContent = `${appearance.resetFontSize} px`;
+}
+
+function scheduleCompactAppearanceUpdate() {
+  if (compactAppearanceTimer) clearTimeout(compactAppearanceTimer);
+  compactAppearanceTimer = setTimeout(async () => {
+    const request = ++compactAppearanceRequest;
+    const value = {
+      ballSize: Number(el.compactSizeRange.value),
+      quotaFontSize: Number(el.quotaFontSizeRange.value),
+      resetFontSize: Number(el.resetFontSizeRange.value)
+    };
+    try {
+      const normalized = await window.codexQuota.setCompactAppearance(value);
+      if (request === compactAppearanceRequest) applyCompactAppearance(normalized);
+    } catch {
+      if (request === compactAppearanceRequest) applyCompactAppearance(state.compactAppearance);
+    }
+  }, 80);
+}
+
+function setHistoryPeriod(period) {
+  state.historyPeriod = period;
+  if (period === "cycle") {
+    const resetAt = state.lastQuota?.primary?.resetsAt;
+    state.historyAnchor = resetAt ? new Date(resetAt) : new Date();
+  } else {
+    state.historyAnchor = new Date();
+  }
+  updateHistoryPeriodControls();
+  void loadHistory();
+}
+
+function shiftHistoryPeriod(direction) {
+  state.historyAnchor = shiftPeriod(state.historyPeriod, state.historyAnchor, direction);
+  updateHistoryPeriodControls();
+  void loadHistory();
+}
+
+function updateHistoryPeriodControls() {
+  const range = getPeriodRange(state.historyPeriod, state.historyAnchor);
+  el.historyPeriodButtons.forEach((button) => {
+    const active = button.dataset.period === state.historyPeriod;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  el.historyRangeLabel.textContent = formatHistoryRange(range);
+  el.historyNextBtn.disabled = range.end > Date.now();
+  el.historyPointCount.textContent = t("historyPoints").replace("{count}", String(state.historyRecords.length));
+}
+
+async function loadHistory() {
+  if (state.view !== "history") return;
+  const request = ++historyLoadRequest;
+  state.historyLoading = true;
+  const range = getPeriodRange(state.historyPeriod, state.historyAnchor);
+  el.historyEmpty.hidden = false;
+  el.historyEmpty.textContent = state.lang === "zh" ? "正在读取记录..." : "Loading history...";
+
+  try {
+    const records = await window.codexQuota.getHistory(range);
+    if (request !== historyLoadRequest || state.view !== "history") return;
+    state.historyRecords = records;
+    el.historyEmpty.textContent = t("historyEmpty");
+  } catch {
+    if (request !== historyLoadRequest || state.view !== "history") return;
+    state.historyRecords = [];
+    el.historyEmpty.textContent = t("historyLoadError");
+  } finally {
+    if (request !== historyLoadRequest || state.view !== "history") return;
+    state.historyLoading = false;
+    updateHistoryPeriodControls();
+    drawHistoryChart();
+  }
+}
+
+function formatHistoryRange(range) {
+  const locale = state.lang === "zh" ? "zh-CN" : "en-US";
+  const start = new Date(range.start);
+  const end = new Date(range.end - 1);
+  if (state.historyPeriod === "month") {
+    return start.toLocaleDateString(locale, { year: "numeric", month: "long" });
+  }
+  if (state.historyPeriod === "day") {
+    return start.toLocaleDateString(locale, { year: "numeric", month: "short", day: "numeric" });
+  }
+  if (state.historyPeriod === "cycle") {
+    const date = start.toLocaleDateString(locale, { month: "short", day: "numeric" });
+    return `${date} ${formatAxisTime(start)}–${formatAxisTime(end)}`;
+  }
+  const startText = start.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  const endText = end.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  return `${startText} – ${endText}`;
+}
+
+function drawHistoryChart() {
+  if (state.view !== "history") return;
+  const canvas = el.historyChart;
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, rect.width, rect.height);
+
+  const range = getPeriodRange(state.historyPeriod, state.historyAnchor);
+  const series = buildConsumptionSeries(state.historyRecords);
+  const dark = state.theme === "dark";
+  const plot = { left: 34, top: 10, right: rect.width - 10, bottom: rect.height - 23 };
+  const plotWidth = Math.max(1, plot.right - plot.left);
+  const plotHeight = Math.max(1, plot.bottom - plot.top);
+
+  ctx.font = '10px "Segoe UI", sans-serif';
+  ctx.lineWidth = 1;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+  for (const percent of [0, 25, 50, 75, 100]) {
+    const y = plot.bottom - (percent / 100) * plotHeight;
+    ctx.strokeStyle = dark ? "rgba(148,163,184,.15)" : "rgba(71,85,105,.12)";
+    ctx.beginPath();
+    ctx.moveTo(plot.left, y);
+    ctx.lineTo(plot.right, y);
+    ctx.stroke();
+    if (percent === 0 || percent === 50 || percent === 100) {
+      ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
+      ctx.fillText(`${percent}%`, plot.left - 5, y);
+    }
+  }
+
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  const axisTimes = [range.start, (range.start + range.end) / 2, range.end - 1];
+  axisTimes.forEach((time, index) => {
+    const x = plot.left + (index / 2) * plotWidth;
+    ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
+    ctx.fillText(formatAxisTime(new Date(time)), x, plot.bottom + 6);
+  });
+
+  drawSeries(ctx, series, "primaryUsed", "#2563eb", range, plot);
+  drawSeries(ctx, series, "secondaryUsed", "#ef5c68", range, plot);
+  el.historyEmpty.hidden = series.length > 0;
+}
+
+function drawSeries(ctx, points, key, color, range, plot) {
+  const usable = points.filter((point) => point[key] !== null);
+  if (!usable.length) return;
+  const xFor = (timestamp) => plot.left + ((timestamp - range.start) / (range.end - range.start)) * (plot.right - plot.left);
+  const yFor = (value) => plot.bottom - (value / 100) * (plot.bottom - plot.top);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(plot.left, plot.top, plot.right - plot.left, plot.bottom - plot.top);
+  ctx.clip();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  usable.forEach((point, index) => {
+    const x = xFor(point.timestamp);
+    const y = yFor(point[key]);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  const dotStep = Math.max(1, Math.ceil(usable.length / 120));
+  ctx.fillStyle = color;
+  usable.forEach((point, index) => {
+    if (index % dotStep !== 0 && index !== usable.length - 1) return;
+    ctx.beginPath();
+    ctx.arc(xFor(point.timestamp), yFor(point[key]), 2.2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function formatAxisTime(date) {
+  if (state.historyPeriod === "month" || state.historyPeriod === "week") {
+    return date.toLocaleDateString(state.lang === "zh" ? "zh-CN" : "en-US", { month: "numeric", day: "numeric" });
+  }
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 async function setEffectiveAutoRefreshMinutes(value) {
@@ -556,7 +856,9 @@ async function refreshQuota({ userInitiated = false } = {}) {
     setStatus("loading", t("loading"), t("reading"));
     el.compactReset.textContent = state.lang === "zh" ? "读取中" : "Loading";
     const quota = await window.codexQuota.getQuota();
+    await window.codexQuota.recordHistory(quota).catch(() => null);
     renderQuota(quota);
+    if (state.view === "history") await loadHistory();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     setStatus("error", t("error"), message || t("unavailable"));
@@ -706,6 +1008,7 @@ function setLanguage(value) {
   state.lang = value === "en" ? "en" : "zh";
   localStorage.setItem("codex-led-lang", state.lang);
   applyLabels();
+  if (state.view === "history") drawHistoryChart();
   if (state.lastQuota) {
     renderQuota(state.lastQuota);
   } else {
@@ -795,8 +1098,10 @@ for (const dragTarget of [el.compactBall, el.weeklyWarning]) {
   dragTarget.addEventListener("pointercancel", cancelCompactDrag);
 }
 el.compactBall.addEventListener("click", handleCompactBallClick);
+el.historyBtn.addEventListener("click", () => updateDetailView(state.view === "history" ? "main" : "history"));
 el.settingsBtn.addEventListener("click", () => updateDetailView("settings"));
 el.settingsBackBtn.addEventListener("click", () => updateDetailView("main"));
+el.historyBackBtn.addEventListener("click", () => updateDetailView("main"));
 el.languageSelect.addEventListener("change", () => setLanguage(el.languageSelect.value));
 el.themeSelect.addEventListener("change", () => setTheme(el.themeSelect.value));
 el.weeklyThresholdSelect.addEventListener("change", () => setWeeklyAlertThreshold(el.weeklyThresholdSelect.value));
@@ -807,6 +1112,14 @@ el.regularRefreshSelect.addEventListener("change", () => void setRegularRefreshM
 el.smartEnabledToggle.addEventListener("change", () => void setSmartEnabled(el.smartEnabledToggle.checked));
 el.smartActiveRefreshSelect.addEventListener("change", () => void setSmartActiveRefreshMinutes(el.smartActiveRefreshSelect.value));
 el.smartIdleTimeoutSelect.addEventListener("change", () => setSmartIdleMinutes(el.smartIdleTimeoutSelect.value));
+for (const control of [el.compactSizeRange, el.quotaFontSizeRange, el.resetFontSizeRange]) {
+  control.addEventListener("input", scheduleCompactAppearanceUpdate);
+}
+for (const button of el.historyPeriodButtons) {
+  button.addEventListener("click", () => setHistoryPeriod(button.dataset.period));
+}
+el.historyPrevBtn.addEventListener("click", () => shiftHistoryPeriod(-1));
+el.historyNextBtn.addEventListener("click", () => shiftHistoryPeriod(1));
 el.refreshBtn.addEventListener("click", () => refreshQuota({ userInitiated: true }));
 el.minimizeBtn.addEventListener("click", async () => {
   updateWindowMode(await window.codexQuota.minimize());
@@ -822,6 +1135,9 @@ el.autoRefreshSelect.addEventListener("change", () => {
 window.codexQuota.onRefresh(() => refreshQuota({ userInitiated: true }));
 window.codexQuota.onAlwaysOnTopChanged(updatePinButton);
 window.codexQuota.onWindowModeChanged(updateWindowMode);
+window.addEventListener("resize", () => {
+  if (state.view === "history") drawHistoryChart();
+});
 
 function configureAutoRefresh() {
   if (state.autoRefreshTimer) {
@@ -835,6 +1151,7 @@ function configureAutoRefresh() {
 }
 
 (async () => {
+  applyCompactAppearance(await window.codexQuota.getCompactAppearance());
   updateWindowMode(await window.codexQuota.getWindowMode());
   updatePinButton(await window.codexQuota.getAlwaysOnTop());
   state.autoRefreshMinutes = await window.codexQuota.getAutoRefreshMinutes();

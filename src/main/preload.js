@@ -12,6 +12,10 @@ contextBridge.exposeInMainWorld("codexQuota", {
   moveWindowBy: (dx, dy) => ipcRenderer.invoke("window:moveBy", dx, dy),
   getAutoRefreshMinutes: () => ipcRenderer.invoke("settings:autoRefresh:get"),
   setAutoRefreshMinutes: (minutes) => ipcRenderer.invoke("settings:autoRefresh:set", minutes),
+  getCompactAppearance: () => ipcRenderer.invoke("settings:compactAppearance:get"),
+  setCompactAppearance: (value) => ipcRenderer.invoke("settings:compactAppearance:set", value),
+  recordHistory: (quota) => ipcRenderer.invoke("history:record", quota),
+  getHistory: (range) => ipcRenderer.invoke("history:get", range),
   openCodex: () => ipcRenderer.invoke("external:openCodex"),
   onRefresh: (callback) => {
     ipcRenderer.on("quota:refresh", callback);

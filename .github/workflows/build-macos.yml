@@ -34,13 +34,23 @@ jobs:
         run: npm test
 
       - name: Build unsigned DMG
-        run: npx electron-builder --mac dmg --${{ matrix.arch }} --publish never
+        run: npm run build:mac:${{ matrix.arch }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Generate checksum
+        shell: bash
+        run: |
+          dmg=$(find dist -maxdepth 1 -name "Codex-Floating-Ball-*-mac-${{ matrix.arch }}.dmg" -print -quit)
+          test -n "$dmg"
+          shasum -a 256 "$dmg" > "$dmg.sha256"
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
           name: Codex-Floating-Ball-mac-${{ matrix.arch }}
-          path: dist/Codex-Floating-Ball-*-mac-${{ matrix.arch }}.dmg
+          path: |
+            dist/Codex-Floating-Ball-*-mac-${{ matrix.arch }}.dmg
+            dist/Codex-Floating-Ball-*-mac-${{ matrix.arch }}.dmg.sha256
           if-no-files-found: error
+          retention-days: 14

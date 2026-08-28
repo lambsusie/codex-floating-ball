@@ -46,6 +46,18 @@ Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工
 
 ### 项目亮点
 
+#### v1.0.0：额度历史与可调悬浮球
+
+v1.0.0 会在每次成功刷新时，将 5 小时和 7 天额度快照追加保存到本机应用数据目录。历史页面支持按 **日、周、月、5 小时周期** 查看两条额度消耗折线，并可前后切换到更早的时间段。
+
+悬浮球现在还可以分别调整：
+
+- 球体直径（`88–200 px`）
+- 额度数字字号
+- 重置时间字号
+
+应用会根据球体尺寸自动限制字号和布局，避免两行文字重叠。历史数据仅保存在本机，不会上传。
+
 #### 智能刷新
 
 普通的额度监控工具通常只能按照固定时间间隔持续轮询。Codex Floating Ball 提供了一套更适合实际 Codex 工作流的 **Smart Refresh / 智能刷新机制**。
@@ -130,6 +142,9 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 - 可直接拖动悬浮球到桌面任意位置，并自动记住位置。
 - 完整面板失去焦点后自动返回悬浮球状态。
 - 支持 5 小时和 7 天 / 周额度信息显示。
+- 自动记录每次成功刷新的额度快照，并按日、周、月或 5 小时周期显示历史消耗曲线。
+- 支持回溯更早的历史周期；历史记录仅保存在本机应用数据目录。
+- 悬浮球直径、额度字号和重置时间字号可分别调整，并自动避免文字重叠。
 - 悬浮球、5 小时额度和周额度可分别设置为显示剩余时间或具体重置时刻。
 - 支持智能刷新，可配置活跃刷新间隔和额度无变化超时。
 - 额度长期无变化后自动切换为手动刷新，手动刷新或双击悬浮球后恢复智能自动刷新。
@@ -268,6 +283,18 @@ The project follows a local-first approach:
 
 ### Highlights
 
+#### v1.0.0: quota history and a resizable floating ball
+
+Version 1.0.0 appends a local snapshot of the 5-hour and 7-day quotas after every successful refresh. The history view plots both consumption series by **day, week, month, or 5-hour cycle**, with navigation to earlier periods.
+
+The compact widget now provides independent controls for:
+
+- Floating-ball diameter (`88–200 px`)
+- Quota-value font size
+- Reset-time font size
+
+The app constrains typography and layout to the selected ball size so the two text rows do not overlap. History data remains on the local device and is not uploaded.
+
 #### Smart refresh
 
 Traditional quota monitors often poll continuously at a fixed interval. Codex Floating Ball includes a configurable **Smart Refresh** mechanism designed around real periods of active and inactive Codex usage.
@@ -350,6 +377,9 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 - Drag the floating ball anywhere on the desktop; its position is remembered.
 - The detailed panel automatically returns to compact mode when it loses focus.
 - Support for 5-hour and 7-day / weekly quota information when available.
+- Local quota snapshots after every successful refresh, with day, week, month, and 5-hour-cycle consumption charts.
+- Navigation to earlier history periods; quota history remains in the local application-data directory.
+- Independent controls for floating-ball diameter, quota font size, and reset-time font size, with automatic overlap prevention.
 - Independent reset-time display settings for the floating ball, 5-hour quota, and weekly quota.
 - Smart Refresh with configurable active interval and quota-inactivity timeout.
 - Automatically switches to manual refresh after quota remains unchanged and resumes Smart Refresh after manual refresh or double-click.

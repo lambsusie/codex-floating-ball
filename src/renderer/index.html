@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'" />
     <title>Codex LED Widget</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
@@ -41,6 +42,11 @@
             </div>
           </div>
           <div class="window-actions">
+            <button id="historyBtn" class="icon-button" title="额度历史" aria-label="额度历史">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6" />
+              </svg>
+            </button>
             <button id="settingsBtn" class="icon-button" title="设置" aria-label="设置">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
@@ -181,6 +187,27 @@
                 <option value="point">重置时间点</option>
               </select>
             </label>
+            <label class="settings-row settings-range-row">
+              <span>
+                <span id="compactSizeLabel">悬浮球大小</span>
+                <output id="compactSizeValue">120 px</output>
+              </span>
+              <input id="compactSizeRange" type="range" min="88" max="200" step="4" value="120" />
+            </label>
+            <label class="settings-row settings-range-row">
+              <span>
+                <span id="quotaFontSizeLabel">额度字号</span>
+                <output id="quotaFontSizeValue">27 px</output>
+              </span>
+              <input id="quotaFontSizeRange" type="range" min="20" max="64" step="1" value="27" />
+            </label>
+            <label class="settings-row settings-range-row">
+              <span>
+                <span id="resetFontSizeLabel">重置时间字号</span>
+                <output id="resetFontSizeValue">11 px</output>
+              </span>
+              <input id="resetFontSizeRange" type="range" min="9" max="24" step="1" value="11" />
+            </label>
             <label id="regularRefreshRow" class="settings-row">
               <span id="regularRefreshLabel">常规刷新</span>
               <select id="regularRefreshSelect" aria-label="常规刷新">
@@ -230,10 +257,45 @@
             <p id="smartSettingsHint" class="settings-hint smart-settings-hint" hidden></p>
           </div>
         </section>
+
+        <section id="historyPanel" class="history-panel" hidden>
+          <div class="history-header">
+            <button id="historyBackBtn" class="icon-button" title="返回" aria-label="返回">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <div>
+              <strong id="historyTitle">额度消耗</strong>
+              <span id="historySubtitle">每次刷新自动记录</span>
+            </div>
+            <div class="history-periods" role="tablist" aria-label="历史时间范围">
+              <button class="period-button active" type="button" data-period="day">日</button>
+              <button class="period-button" type="button" data-period="week">周</button>
+              <button class="period-button" type="button" data-period="month">月</button>
+              <button class="period-button" type="button" data-period="cycle">5h</button>
+            </div>
+          </div>
+          <div class="history-navigator">
+            <button id="historyPrevBtn" class="history-nav-button" type="button" aria-label="上一时段">‹</button>
+            <strong id="historyRangeLabel">--</strong>
+            <button id="historyNextBtn" class="history-nav-button" type="button" aria-label="下一时段">›</button>
+          </div>
+          <div class="history-chart-shell">
+            <canvas id="historyChart" width="928" height="300" aria-label="额度消耗折线图"></canvas>
+            <div id="historyEmpty" class="history-empty">这一时段还没有记录</div>
+          </div>
+          <div class="history-legend">
+            <span><i class="legend-primary"></i><span id="historyPrimaryLegend">5小时已用</span></span>
+            <span><i class="legend-secondary"></i><span id="historySecondaryLegend">7天已用</span></span>
+            <span id="historyPointCount">0 个记录点</span>
+          </div>
+        </section>
       </section>
     </main>
 
     <script src="./smart-refresh.js"></script>
+    <script src="./history-utils.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

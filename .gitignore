@@ -1,4 +1,6 @@
 node_modules/
+.npm-cache/
+.electron-builder-cache/
 dist/
 out/
 .env

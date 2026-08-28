@@ -1,6 +1,6 @@
 {
   "name": "codex-floating-ball",
-  "version": "0.4.2",
+  "version": "1.0.0",
   "description": "A customizable Windows and macOS floating widget for monitoring local Codex usage quota.",
   "main": "src/main/main.js",
   "author": "lambsusie and contributors",
@@ -18,9 +18,12 @@
     "dev": "electron .",
     "start": "electron .",
     "test": "node --test",
+    "test:visual": "electron scripts/visual-smoke-main.js",
     "build": "npm run build:win",
     "build:win": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
-    "build:mac": "electron-builder --mac dmg --x64 --arm64",
+    "build:mac": "npm run build:mac:arm64 && npm run build:mac:x64",
+    "build:mac:arm64": "electron-builder --mac dmg --arm64 --publish never",
+    "build:mac:x64": "electron-builder --mac dmg --x64 --publish never",
     "build:dir": "electron-builder --dir"
   },
   "build": {

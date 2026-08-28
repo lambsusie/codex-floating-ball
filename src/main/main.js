@@ -2,14 +2,10 @@ const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, screen } = 
 const fs = require("node:fs");
 const path = require("node:path");
 const { getQuota, resolveCodexPath, shutdownQuotaService } = require("./quota-service");
+const { appendHistory, readHistoryRange } = require("./history-service");
+const { DEFAULT_COMPACT_APPEARANCE, normalizeCompactAppearance } = require("./compact-appearance");
 
-const COMPACT_SIZE = { width: 132, height: 132 };
-const COMPACT_ALERT_SIZE = { width: 226, height: 132 };
 const DETAIL_SIZE = { width: 520, height: 360 };
-const WINDOW_MODES = {
-  compact: COMPACT_SIZE,
-  detail: DETAIL_SIZE
-};
 const DEFAULT_WINDOW_MODE = "compact";
 const AUTO_REFRESH_OPTIONS = new Set([0, 1, 5, 10, 30, 60]);
 
@@ -18,6 +14,7 @@ let tray;
 let isAlwaysOnTop = true;
 let currentWindowMode = DEFAULT_WINDOW_MODE;
 let compactAlertActive = false;
+let compactAppearance = { ...DEFAULT_COMPACT_APPEARANCE };
 let saveBoundsTimer;
 
 function createWindow() {
@@ -119,6 +116,10 @@ function getSettingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
 }
 
+function getHistoryPath() {
+  return path.join(app.getPath("userData"), "quota-history.ndjson");
+}
+
 function writeSettings(settings) {
   fs.mkdirSync(app.getPath("userData"), { recursive: true });
   fs.writeFileSync(getSettingsPath(), JSON.stringify(settings, null, 2), "utf8");
@@ -146,12 +147,17 @@ function getWindowMode() {
 }
 
 function getWindowSize(mode = currentWindowMode) {
-  if (mode === "compact" && compactAlertActive) return COMPACT_ALERT_SIZE;
-  return WINDOW_MODES[mode] || WINDOW_MODES[DEFAULT_WINDOW_MODE];
+  if (mode === "detail") return DETAIL_SIZE;
+  const padding = 12;
+  const alertWidth = compactAlertActive ? 94 : 0;
+  return {
+    width: compactAppearance.ballSize + padding + alertWidth,
+    height: compactAppearance.ballSize + padding
+  };
 }
 
 function setWindowMode(mode) {
-  if (!Object.prototype.hasOwnProperty.call(WINDOW_MODES, mode)) {
+  if (mode !== "compact" && mode !== "detail") {
     throw new Error(`Unsupported window mode: ${mode}`);
   }
 
@@ -166,6 +172,27 @@ function setWindowMode(mode) {
   saveWindowBounds();
   rebuildTrayMenu();
   return currentWindowMode;
+}
+
+function getCompactAppearance() {
+  return { ...compactAppearance };
+}
+
+function setCompactAppearance(value) {
+  compactAppearance = normalizeCompactAppearance(value);
+  const settings = readSettings();
+  settings.compactAppearance = compactAppearance;
+  writeSettings(settings);
+
+  if (mainWindow && currentWindowMode === "compact") {
+    const size = getWindowSize("compact");
+    const nextBounds = resizeFromRightEdge(mainWindow.getBounds(), size);
+    mainWindow.setMinimumSize(size.width, size.height);
+    mainWindow.setBounds(clampBoundsToDisplay(nextBounds));
+    saveWindowBounds();
+  }
+  mainWindow?.webContents.send("settings:compactAppearanceChanged", compactAppearance);
+  return getCompactAppearance();
 }
 
 function setCompactAlert(value) {
@@ -280,6 +307,7 @@ function toggleWindow() {
 
 app.whenReady().then(() => {
   if (process.platform === "darwin") app.dock?.hide();
+  compactAppearance = normalizeCompactAppearance(readSettings().compactAppearance);
   createWindow();
   createTray();
 
@@ -294,6 +322,10 @@ app.whenReady().then(() => {
   ipcMain.handle("window:moveBy", (_event, dx, dy) => moveWindowBy(dx, dy));
   ipcMain.handle("settings:autoRefresh:get", () => getAutoRefreshMinutes());
   ipcMain.handle("settings:autoRefresh:set", (_event, minutes) => setAutoRefreshMinutes(minutes));
+  ipcMain.handle("settings:compactAppearance:get", () => getCompactAppearance());
+  ipcMain.handle("settings:compactAppearance:set", (_event, value) => setCompactAppearance(value));
+  ipcMain.handle("history:record", (_event, quota) => appendHistory(getHistoryPath(), quota));
+  ipcMain.handle("history:get", (_event, range) => readHistoryRange(getHistoryPath(), range?.start, range?.end));
   ipcMain.handle("external:openCodex", () => {
     shell.openPath(resolveCodexPath());
   });
@@ -303,8 +335,8 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("window-all-closed", (event) => {
-  event.preventDefault();
+app.on("window-all-closed", () => {
+  // Keep the tray-only app alive when the last window is closed.
 });
 
 app.on("before-quit", shutdownQuotaService);
