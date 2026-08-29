@@ -45,10 +45,19 @@
   }
 
   function buildConsumptionSeries(records) {
+    return buildQuotaSeries(records, "used").map((point) => ({
+      timestamp: point.timestamp,
+      primaryUsed: point.primaryValue,
+      secondaryUsed: point.secondaryValue
+    }));
+  }
+
+  function buildQuotaSeries(records, metric = "used") {
+    const showRemaining = metric === "remaining";
     return records.map((record) => ({
       timestamp: Number(record.timestamp),
-      primaryUsed: remainingToUsed(record.primaryRemaining),
-      secondaryUsed: remainingToUsed(record.secondaryRemaining)
+      primaryValue: showRemaining ? normalizePercent(record.primaryRemaining) : remainingToUsed(record.primaryRemaining),
+      secondaryValue: showRemaining ? normalizePercent(record.secondaryRemaining) : remainingToUsed(record.secondaryRemaining)
     })).filter((point) => Number.isFinite(point.timestamp));
   }
 
@@ -61,10 +70,15 @@
   }
 
   function remainingToUsed(value) {
+    const number = normalizePercent(value);
+    return number === null ? null : 100 - number;
+  }
+
+  function normalizePercent(value) {
     if (value === null || value === undefined || value === "") return null;
     const number = Number(value);
     if (!Number.isFinite(number)) return null;
-    return Math.max(0, Math.min(100, 100 - number));
+    return Math.max(0, Math.min(100, number));
   }
 
   function startOfLocalDay(value) {
@@ -76,7 +90,7 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  const api = { buildConsumptionSeries, getAxisTickValues, getPeriodRange, shiftPeriod };
+  const api = { buildConsumptionSeries, buildQuotaSeries, getAxisTickValues, getPeriodRange, shiftPeriod };
   globalObject.historyUtils = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(globalThis);

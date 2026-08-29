@@ -46,6 +46,20 @@ Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工
 
 ### 项目亮点
 
+#### v1.1.1：历史图表交互与 CSV 导出
+
+v1.1.1 进一步完善额度历史页面。图表现在可以在 **消耗额度** 与 **剩余额度** 之间自由切换，两种模式都使用统一的 `0–100%` 纵轴，并会记住最后一次选择。鼠标移到采样点附近时，悬停提示会显示具体采样时间以及 5 小时和 7 天额度的精确数值，并自动调整位置以避免超出图表边界。
+
+历史页面还新增 CSV 导出按钮，可将本机保存的全部有效记录导出到用户选择的位置。导出内容包括采样时间、两个额度窗口的剩余/已用百分比及重置时间，可直接使用 Excel 或其他表格软件打开。升级不会删除已有历史，记录仍只保存在本机。
+
+<p align="center">
+  <img
+    src="v1.1.1-feature-03-hover-details.png"
+    alt="v1.1.1 数据点悬停详情：显示采样时间、5 小时额度和 7 天额度"
+    width="100%"
+  >
+</p>
+
 #### v1.1.0：低频采样与更新提醒
 
 v1.1.0 扩展了智能刷新机制。额度在设定时间内没有变化后，可以切换为 **手动刷新、每 30 分钟采样或每 60 分钟采样**；低频采样检测到额度再次变化，或用户主动刷新后，会自动恢复活跃刷新间隔。主界面会显示当前实际刷新频率，重新选择分钟数也可以立即恢复活跃模式。
@@ -148,8 +162,11 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 - 可直接拖动悬浮球到桌面任意位置，并自动记住位置。
 - 完整面板失去焦点后自动返回悬浮球状态。
 - 支持 5 小时和 7 天 / 周额度信息显示。
-- 自动记录每次成功刷新的额度快照，并按日、周、月或 5 小时周期显示历史消耗曲线。
+- 自动记录每次成功刷新的额度快照，并按日、周、月或 5 小时周期显示历史曲线。
 - 支持回溯更早的历史周期；历史记录仅保存在本机应用数据目录。
+- 历史图表可切换显示消耗额度或剩余额度，并记住最后一次选择；两种模式均使用统一的 `0–100%` 刻度。
+- 鼠标悬停在历史采样点附近时，可查看采样时间以及 5 小时和 7 天额度的精确数值。
+- 可将全部有效历史记录导出为 CSV，包含采样时间、剩余/已用百分比和重置时间，文件只会写入用户选择的位置。
 - 悬浮球直径、额度字号和重置时间字号可分别调整，并自动避免文字重叠。
 - 悬浮球、5 小时额度和周额度可分别设置为显示剩余时间或具体重置时刻。
 - 支持智能刷新，可配置活跃刷新间隔、额度无变化超时和无变化后的采样频率。
@@ -290,6 +307,20 @@ The project follows a local-first approach:
 
 ### Highlights
 
+#### v1.1.1: interactive history charts and CSV export
+
+Version 1.1.1 expands the history view with a selector for **quota used** or **quota remaining**. Both modes share a consistent `0–100%` vertical scale, and the latest selection is remembered. Hovering near a recorded point shows its timestamp and the exact 5-hour and 7-day values; the tooltip repositions itself to stay inside the chart.
+
+The history page also adds CSV export for every valid local record. Exports include timestamps, remaining and used percentages for both quota windows, and their reset times, and are written only to the location selected by the user. Existing history is preserved during upgrades and remains local.
+
+<p align="center">
+  <img
+    src="v1.1.1-feature-03-hover-details.png"
+    alt="v1.1.1 chart hover details showing the timestamp and exact 5-hour and 7-day quota values"
+    width="100%"
+  >
+</p>
+
 #### v1.1.0: idle sampling and update notifications
 
 Version 1.1.0 extends Smart Refresh with **Manual, 30-minute, and 60-minute idle sampling modes** after quota remains unchanged for the configured period. A detected quota change or a manual refresh automatically restores the active interval. The main selector shows the actual current refresh frequency, and selecting a minute interval resumes active mode immediately.
@@ -390,8 +421,11 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 - Drag the floating ball anywhere on the desktop; its position is remembered.
 - The detailed panel automatically returns to compact mode when it loses focus.
 - Support for 5-hour and 7-day / weekly quota information when available.
-- Local quota snapshots after every successful refresh, with day, week, month, and 5-hour-cycle consumption charts.
+- Local quota snapshots after every successful refresh, with day, week, month, and 5-hour-cycle history charts.
 - Navigation to earlier history periods; quota history remains in the local application-data directory.
+- Switch history charts between quota used and quota remaining on a consistent `0–100%` scale; the latest selection is remembered.
+- Hover near a history point to see its timestamp and the exact 5-hour and 7-day quota values.
+- Export every valid history record to CSV with timestamps, remaining/used percentages, and reset times; files are written only to the user-selected location.
 - Independent controls for floating-ball diameter, quota font size, and reset-time font size, with automatic overlap prevention.
 - Independent reset-time display settings for the floating ball, 5-hour quota, and weekly quota.
 - Smart Refresh with configurable active interval, quota-inactivity timeout, and idle sampling frequency.

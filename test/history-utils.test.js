@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   buildConsumptionSeries,
+  buildQuotaSeries,
   getAxisTickValues,
   getPeriodRange,
   shiftPeriod
@@ -33,6 +34,16 @@ test("converts remaining quota to consumed quota", () => {
     { timestamp: 10, primaryRemaining: 75, secondaryRemaining: 40 }
   ]), [
     { timestamp: 10, primaryUsed: 25, secondaryUsed: 60 }
+  ]);
+});
+
+test("builds either used or remaining quota series", () => {
+  const records = [{ timestamp: 10, primaryRemaining: 75.5, secondaryRemaining: 40 }];
+  assert.deepEqual(buildQuotaSeries(records, "used"), [
+    { timestamp: 10, primaryValue: 24.5, secondaryValue: 60 }
+  ]);
+  assert.deepEqual(buildQuotaSeries(records, "remaining"), [
+    { timestamp: 10, primaryValue: 75.5, secondaryValue: 40 }
   ]);
 });
 

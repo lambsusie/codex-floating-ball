@@ -66,12 +66,21 @@ const labels = {
     historySubtitle: "每次刷新自动记录",
     historyEmpty: "这一时段还没有记录",
     historyLoadError: "读取历史失败",
+    historyExport: "导出记录",
+    historyExporting: "正在导出...",
+    historyExported: "已导出 {count} 条记录",
+    historyExportFailed: "导出失败",
+    historyMetric: "纵轴显示",
+    historyMetricUsed: "消耗额度",
+    historyMetricRemaining: "剩余额度",
     periodDay: "日",
     periodWeek: "周",
     periodMonth: "月",
     periodCycle: "5h",
     primaryUsed: "5小时已用",
     secondaryUsed: "7天已用",
+    primaryRemaining: "5小时剩余",
+    secondaryRemaining: "7天剩余",
     historyPoints: "{count} 个记录点",
     previousPeriod: "上一时段",
     nextPeriod: "下一时段",
@@ -146,12 +155,21 @@ const labels = {
     historySubtitle: "Recorded on every refresh",
     historyEmpty: "No records in this period",
     historyLoadError: "Could not load history",
+    historyExport: "Export history",
+    historyExporting: "Exporting...",
+    historyExported: "Exported {count} records",
+    historyExportFailed: "Export failed",
+    historyMetric: "Vertical axis",
+    historyMetricUsed: "Quota used",
+    historyMetricRemaining: "Quota remaining",
     periodDay: "Day",
     periodWeek: "Week",
     periodMonth: "Month",
     periodCycle: "5h",
     primaryUsed: "5-hour used",
     secondaryUsed: "7-day used",
+    primaryRemaining: "5-hour remaining",
+    secondaryRemaining: "7-day remaining",
     historyPoints: "{count} points",
     previousPeriod: "Previous period",
     nextPeriod: "Next period",
@@ -171,9 +189,10 @@ const DEFAULT_SMART_ACTIVE_REFRESH_MINUTES = 1;
 const DEFAULT_SMART_IDLE_MINUTES = 30;
 const DEFAULT_SMART_IDLE_REFRESH_MINUTES = 0;
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const HISTORY_METRICS = new Set(["used", "remaining"]);
 const TIME_DISPLAY_MODES = new Set(["duration", "point"]);
 const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = window.smartRefreshUtils;
-const { buildConsumptionSeries, getAxisTickValues, getPeriodRange, shiftPeriod } = window.historyUtils;
+const { buildQuotaSeries, getAxisTickValues, getPeriodRange, shiftPeriod } = window.historyUtils;
 
 const state = {
   lang: getStoredLanguage(),
@@ -206,9 +225,11 @@ const state = {
   smartIdleTimer: undefined,
   compactAppearance: { ballSize: 120, quotaFontSize: 27, resetFontSize: 11 },
   historyPeriod: "day",
+  historyMetric: getStoredHistoryMetric(),
   historyAnchor: new Date(),
   historyRecords: [],
   historyLoading: false,
+  historyChartPoints: [],
   lastQuota: null
 };
 
@@ -293,12 +314,18 @@ const el = {
   historyBackBtn: document.getElementById("historyBackBtn"),
   historyTitle: document.getElementById("historyTitle"),
   historySubtitle: document.getElementById("historySubtitle"),
+  historyExportBtn: document.getElementById("historyExportBtn"),
   historyPeriodButtons: [...document.querySelectorAll("[data-period]")],
   historyPrevBtn: document.getElementById("historyPrevBtn"),
   historyNextBtn: document.getElementById("historyNextBtn"),
   historyRangeLabel: document.getElementById("historyRangeLabel"),
+  historyMetricSelect: document.getElementById("historyMetricSelect"),
   historyChart: document.getElementById("historyChart"),
   historyEmpty: document.getElementById("historyEmpty"),
+  historyTooltip: document.getElementById("historyTooltip"),
+  historyTooltipTime: document.getElementById("historyTooltipTime"),
+  historyTooltipPrimary: document.getElementById("historyTooltipPrimary"),
+  historyTooltipSecondary: document.getElementById("historyTooltipSecondary"),
   historyPrimaryLegend: document.getElementById("historyPrimaryLegend"),
   historySecondaryLegend: document.getElementById("historySecondaryLegend"),
   historyPointCount: document.getElementById("historyPointCount")
@@ -310,6 +337,7 @@ let suppressCompactClick = false;
 let compactAppearanceTimer;
 let compactAppearanceRequest = 0;
 let historyLoadRequest = 0;
+let historyExportStatusTimer;
 
 function t(key) {
   return labels[state.lang][key];
@@ -327,6 +355,11 @@ function getStoredTheme() {
 
 function getStoredAutoCheckUpdates() {
   return localStorage.getItem("codex-led-auto-check-updates") !== "false";
+}
+
+function getStoredHistoryMetric() {
+  const value = localStorage.getItem("codex-led-history-metric");
+  return HISTORY_METRICS.has(value) ? value : "used";
 }
 
 function getStoredWeeklyThreshold() {
@@ -424,9 +457,10 @@ function applyLabels() {
   el.historyBackBtn.setAttribute("aria-label", t("back"));
   el.historyTitle.textContent = t("historyTitle");
   el.historySubtitle.textContent = t("historySubtitle");
+  el.historyExportBtn.title = t("historyExport");
+  el.historyExportBtn.setAttribute("aria-label", t("historyExport"));
   el.historyEmpty.textContent = t("historyEmpty");
-  el.historyPrimaryLegend.textContent = t("primaryUsed");
-  el.historySecondaryLegend.textContent = t("secondaryUsed");
+  el.historyMetricSelect.setAttribute("aria-label", t("historyMetric"));
   el.historyPrevBtn.setAttribute("aria-label", t("previousPeriod"));
   el.historyNextBtn.setAttribute("aria-label", t("nextPeriod"));
   const periodLabels = {
@@ -438,6 +472,7 @@ function applyLabels() {
   el.historyPeriodButtons.forEach((button) => {
     button.textContent = t(periodLabels[button.dataset.period]);
   });
+  updateHistoryMetricControls();
   updateHistoryPeriodControls();
   updatePinButton(state.alwaysOnTop);
 }
@@ -545,6 +580,7 @@ function updateDetailView(view) {
   el.settingsBtn.classList.toggle("active", state.view === "settings");
   el.historyBtn.classList.toggle("active", state.view === "history");
   if (state.view === "history") void loadHistory();
+  else hideHistoryTooltip();
 }
 
 function applyTheme() {
@@ -595,6 +631,23 @@ function scheduleCompactAppearanceUpdate() {
   }, 80);
 }
 
+function updateHistoryMetricControls() {
+  const remaining = state.historyMetric === "remaining";
+  el.historyMetricSelect.value = state.historyMetric;
+  el.historyMetricSelect.options[0].textContent = t("historyMetricUsed");
+  el.historyMetricSelect.options[1].textContent = t("historyMetricRemaining");
+  el.historyPrimaryLegend.textContent = t(remaining ? "primaryRemaining" : "primaryUsed");
+  el.historySecondaryLegend.textContent = t(remaining ? "secondaryRemaining" : "secondaryUsed");
+  el.historyChart.setAttribute("aria-label", `${t("historyTitle")} · ${t(remaining ? "historyMetricRemaining" : "historyMetricUsed")}`);
+}
+
+function setHistoryMetric(value) {
+  state.historyMetric = HISTORY_METRICS.has(value) ? value : "used";
+  localStorage.setItem("codex-led-history-metric", state.historyMetric);
+  updateHistoryMetricControls();
+  drawHistoryChart();
+}
+
 function setHistoryPeriod(period) {
   state.historyPeriod = period;
   if (period === "cycle") {
@@ -611,6 +664,35 @@ function shiftHistoryPeriod(direction) {
   state.historyAnchor = shiftPeriod(state.historyPeriod, state.historyAnchor, direction);
   updateHistoryPeriodControls();
   void loadHistory();
+}
+
+async function exportHistoryRecords() {
+  if (el.historyExportBtn.disabled) return;
+  el.historyExportBtn.disabled = true;
+  showHistoryFooterMessage(t("historyExporting"));
+  try {
+    const result = await window.codexQuota.exportHistory(state.lang);
+    if (result?.canceled) {
+      updateHistoryPeriodControls();
+      return;
+    }
+    showHistoryFooterMessage(t("historyExported").replace("{count}", String(result?.recordCount ?? 0)), 4000);
+  } catch {
+    showHistoryFooterMessage(t("historyExportFailed"), 4000);
+  } finally {
+    el.historyExportBtn.disabled = false;
+  }
+}
+
+function showHistoryFooterMessage(message, resetAfter = 0) {
+  if (historyExportStatusTimer) clearTimeout(historyExportStatusTimer);
+  el.historyPointCount.textContent = message;
+  if (resetAfter > 0) {
+    historyExportStatusTimer = setTimeout(() => {
+      historyExportStatusTimer = undefined;
+      updateHistoryPeriodControls();
+    }, resetAfter);
+  }
 }
 
 function updateHistoryPeriodControls() {
@@ -671,6 +753,8 @@ function formatHistoryRange(range) {
 
 function drawHistoryChart() {
   if (state.view !== "history") return;
+  hideHistoryTooltip();
+  state.historyChartPoints = [];
   const canvas = el.historyChart;
   const rect = canvas.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
@@ -683,7 +767,7 @@ function drawHistoryChart() {
   ctx.clearRect(0, 0, rect.width, rect.height);
 
   const range = getPeriodRange(state.historyPeriod, state.historyAnchor);
-  const series = buildConsumptionSeries(state.historyRecords);
+  const series = buildQuotaSeries(state.historyRecords, state.historyMetric);
   const dark = state.theme === "dark";
   const plot = { left: 38, top: 10, right: rect.width - 10, bottom: rect.height - 23 };
   const plotWidth = Math.max(1, plot.right - plot.left);
@@ -719,8 +803,16 @@ function drawHistoryChart() {
     ctx.fillText(formatAxisTime(new Date(time)), x, plot.bottom + 6);
   });
 
-  drawSeries(ctx, series, "primaryUsed", "#2563eb", range, plot);
-  drawSeries(ctx, series, "secondaryUsed", "#ef5c68", range, plot);
+  drawSeries(ctx, series, "primaryValue", "#2563eb", range, plot);
+  drawSeries(ctx, series, "secondaryValue", "#ef5c68", range, plot);
+  const xFor = (timestamp) => plot.left + ((timestamp - range.start) / (range.end - range.start)) * plotWidth;
+  const yFor = (value) => plot.bottom - (value / 100) * plotHeight;
+  state.historyChartPoints = series.map((point) => ({
+    ...point,
+    x: xFor(point.timestamp),
+    primaryY: point.primaryValue === null ? null : yFor(point.primaryValue),
+    secondaryY: point.secondaryValue === null ? null : yFor(point.secondaryValue)
+  }));
   el.historyEmpty.hidden = series.length > 0;
 }
 
@@ -756,6 +848,67 @@ function drawSeries(ctx, points, key, color, range, plot) {
     ctx.fill();
   });
   ctx.restore();
+}
+
+function handleHistoryChartPointerMove(event) {
+  if (!state.historyChartPoints.length) {
+    hideHistoryTooltip();
+    return;
+  }
+  const rect = el.historyChart.getBoundingClientRect();
+  const pointerX = event.clientX - rect.left;
+  const pointerY = event.clientY - rect.top;
+  let nearest;
+  let nearestDistance = Infinity;
+
+  for (const point of state.historyChartPoints) {
+    for (const y of [point.primaryY, point.secondaryY]) {
+      if (y === null) continue;
+      const distance = Math.hypot(pointerX - point.x, pointerY - y);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = { point, y };
+      }
+    }
+  }
+
+  if (!nearest || nearestDistance > 11) {
+    hideHistoryTooltip();
+    return;
+  }
+  showHistoryTooltip(nearest.point, nearest.y);
+}
+
+function showHistoryTooltip(point, anchorY) {
+  const locale = state.lang === "zh" ? "zh-CN" : "en-US";
+  el.historyTooltipTime.textContent = new Date(point.timestamp).toLocaleString(locale, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  el.historyTooltipPrimary.textContent = `${el.historyPrimaryLegend.textContent}: ${formatChartPercent(point.primaryValue)}`;
+  el.historyTooltipSecondary.textContent = `${el.historySecondaryLegend.textContent}: ${formatChartPercent(point.secondaryValue)}`;
+  el.historyTooltip.hidden = false;
+
+  const shell = el.historyChart.parentElement.getBoundingClientRect();
+  const tooltip = el.historyTooltip.getBoundingClientRect();
+  let left = point.x + 10;
+  if (left + tooltip.width > shell.width - 6) left = point.x - tooltip.width - 10;
+  left = Math.max(6, Math.min(left, shell.width - tooltip.width - 6));
+  const top = Math.max(6, Math.min(anchorY - tooltip.height / 2, shell.height - tooltip.height - 6));
+  el.historyTooltip.style.left = `${left}px`;
+  el.historyTooltip.style.top = `${top}px`;
+}
+
+function hideHistoryTooltip() {
+  el.historyTooltip.hidden = true;
+}
+
+function formatChartPercent(value) {
+  if (value === null || !Number.isFinite(Number(value))) return "--";
+  const number = Math.round(Number(value) * 10) / 10;
+  return `${number}%`;
 }
 
 function formatAxisTime(date) {
@@ -1270,6 +1423,10 @@ el.historyBtn.addEventListener("click", () => updateDetailView(state.view === "h
 el.settingsBtn.addEventListener("click", () => updateDetailView("settings"));
 el.settingsBackBtn.addEventListener("click", () => updateDetailView("main"));
 el.historyBackBtn.addEventListener("click", () => updateDetailView("main"));
+el.historyExportBtn.addEventListener("click", () => void exportHistoryRecords());
+el.historyMetricSelect.addEventListener("change", () => setHistoryMetric(el.historyMetricSelect.value));
+el.historyChart.addEventListener("mousemove", handleHistoryChartPointerMove);
+el.historyChart.addEventListener("mouseleave", hideHistoryTooltip);
 el.languageSelect.addEventListener("change", () => setLanguage(el.languageSelect.value));
 el.themeSelect.addEventListener("change", () => setTheme(el.themeSelect.value));
 el.autoUpdateToggle.addEventListener("change", () => setAutoCheckUpdates(el.autoUpdateToggle.checked));

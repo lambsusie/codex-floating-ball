@@ -34,6 +34,13 @@ function readHistoryRange(filePath, start, end, maxPoints = MAX_RETURNED_POINTS)
     throw new Error(`History range cannot exceed ${MAX_QUERY_DAYS} days.`);
   }
 
+  const records = readAllHistory(filePath).filter((record) => (
+    record.timestamp >= startTime && record.timestamp < endTime
+  ));
+  return downsampleRecords(records, maxPoints);
+}
+
+function readAllHistory(filePath) {
   let content;
   try {
     content = fs.readFileSync(filePath, "utf8");
@@ -48,7 +55,7 @@ function readHistoryRange(filePath, start, end, maxPoints = MAX_RETURNED_POINTS)
     try {
       const record = JSON.parse(line);
       const timestamp = parseTimestamp(record.timestamp);
-      if (timestamp === null || timestamp < startTime || timestamp >= endTime) continue;
+      if (timestamp === null) continue;
       records.push({
         timestamp,
         primaryRemaining: normalizeOptionalPercent(record.primaryRemaining),
@@ -62,7 +69,38 @@ function readHistoryRange(filePath, start, end, maxPoints = MAX_RETURNED_POINTS)
   }
 
   records.sort((a, b) => a.timestamp - b.timestamp);
-  return downsampleRecords(records, maxPoints);
+  return records;
+}
+
+function historyRecordsToCsv(records) {
+  const header = [
+    "timestamp_iso",
+    "timestamp_unix_ms",
+    "five_hour_remaining_percent",
+    "five_hour_used_percent",
+    "five_hour_resets_at",
+    "seven_day_remaining_percent",
+    "seven_day_used_percent",
+    "seven_day_resets_at"
+  ];
+  const rows = records.map((record) => [
+    toIsoTimestamp(record.timestamp),
+    record.timestamp,
+    formatCsvPercent(record.primaryRemaining),
+    formatCsvPercent(remainingToUsed(record.primaryRemaining)),
+    toIsoTimestamp(record.primaryResetsAt),
+    formatCsvPercent(record.secondaryRemaining),
+    formatCsvPercent(remainingToUsed(record.secondaryRemaining)),
+    toIsoTimestamp(record.secondaryResetsAt)
+  ]);
+  return [header, ...rows].map((row) => row.join(",")).join("\r\n") + "\r\n";
+}
+
+function exportHistoryCsv(historyPath, outputPath) {
+  const records = readAllHistory(historyPath);
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, `\uFEFF${historyRecordsToCsv(records)}`, "utf8");
+  return { filePath: outputPath, recordCount: records.length };
 }
 
 function downsampleRecords(records, maxPoints) {
@@ -85,6 +123,21 @@ function normalizeOptionalPercent(value) {
   return Math.max(0, Math.min(100, Math.round(number * 100) / 100));
 }
 
+function remainingToUsed(value) {
+  const remaining = normalizeOptionalPercent(value);
+  return remaining === null ? null : normalizeOptionalPercent(100 - remaining);
+}
+
+function formatCsvPercent(value) {
+  const normalized = normalizeOptionalPercent(value);
+  return normalized === null ? "" : String(normalized);
+}
+
+function toIsoTimestamp(value) {
+  const timestamp = parseTimestamp(value);
+  return timestamp === null ? "" : new Date(timestamp).toISOString();
+}
+
 function parseTimestamp(value) {
   if (value === null || value === undefined || value === "") return null;
   const timestamp = typeof value === "number" ? value : new Date(value).getTime();
@@ -96,5 +149,8 @@ module.exports = {
   appendHistory,
   createHistoryRecord,
   downsampleRecords,
+  exportHistoryCsv,
+  historyRecordsToCsv,
+  readAllHistory,
   readHistoryRange
 };

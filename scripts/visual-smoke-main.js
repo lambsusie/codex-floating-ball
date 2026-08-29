@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-update-final-2"));
+app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-1"));
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -128,6 +128,38 @@ app.whenReady().then(async () => {
     };
   })()`);
 
+  await window.webContents.executeJavaScript(`(() => {
+    const select = document.getElementById('historyMetricSelect');
+    select.value = 'remaining';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  })()`);
+  await wait(150);
+  const historyRemaining = await capture(window, "history-remaining");
+  await window.webContents.executeJavaScript(`(() => {
+    const canvas = document.getElementById('historyChart');
+    const point = state.historyChartPoints[Math.floor(state.historyChartPoints.length / 2)];
+    const rect = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new MouseEvent('mousemove', {
+      bubbles: true,
+      clientX: rect.left + point.x,
+      clientY: rect.top + (point.primaryY ?? point.secondaryY)
+    }));
+  })()`);
+  await wait(100);
+  const historyTooltip = await capture(window, "history-tooltip");
+  const historyInteractionMetrics = await window.webContents.executeJavaScript(`({
+    metric: document.getElementById('historyMetricSelect').value,
+    primaryLegend: document.getElementById('historyPrimaryLegend').textContent,
+    secondaryLegend: document.getElementById('historySecondaryLegend').textContent,
+    tooltipVisible: !document.getElementById('historyTooltip').hidden,
+    tooltipTime: document.getElementById('historyTooltipTime').textContent,
+    tooltipPrimary: document.getElementById('historyTooltipPrimary').textContent,
+    tooltipSecondary: document.getElementById('historyTooltipSecondary').textContent
+  })`);
+  await window.webContents.executeJavaScript("document.getElementById('historyExportBtn').click()");
+  await wait(100);
+  const exportStatus = await window.webContents.executeJavaScript("document.getElementById('historyPointCount').textContent");
+
   const compactMetrics = await window.webContents.executeJavaScript(`(() => {
     document.body.dataset.mode = 'compact';
     applyCompactAppearance({ ballSize: 200, quotaFontSize: 63, resetFontSize: 24 });
@@ -145,7 +177,7 @@ app.whenReady().then(async () => {
   await wait(200);
   const compact = await capture(window, "compact-max");
 
-  process.stdout.write(`${JSON.stringify({ main, settings, settingsUpdate, settingsSmart, history, compact, startupMetrics, settingsMetrics, updateMetrics, updateDisabledMetrics, smartMetrics, historyMetrics, compactMetrics, diagnostics })}\n`);
+  process.stdout.write(`${JSON.stringify({ main, settings, settingsUpdate, settingsSmart, history, historyRemaining, historyTooltip, compact, startupMetrics, settingsMetrics, updateMetrics, updateDisabledMetrics, smartMetrics, historyMetrics, historyInteractionMetrics, exportStatus, compactMetrics, diagnostics })}\n`);
   window.destroy();
   app.quit();
 });

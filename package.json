@@ -1,6 +1,6 @@
 {
   "name": "codex-floating-ball",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A customizable Windows and macOS floating widget for monitoring local Codex usage quota.",
   "main": "src/main/main.js",
   "author": "lambsusie and contributors",

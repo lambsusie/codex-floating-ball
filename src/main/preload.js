@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("codexQuota", {
   setCompactAppearance: (value) => ipcRenderer.invoke("settings:compactAppearance:set", value),
   recordHistory: (quota) => ipcRenderer.invoke("history:record", quota),
   getHistory: (range) => ipcRenderer.invoke("history:get", range),
+  exportHistory: (language) => ipcRenderer.invoke("history:export", language),
   getAppVersion: () => ipcRenderer.invoke("app:version"),
   checkForUpdates: () => ipcRenderer.invoke("updates:check"),
   notifyUpdate: (language) => ipcRenderer.invoke("updates:notify", language),

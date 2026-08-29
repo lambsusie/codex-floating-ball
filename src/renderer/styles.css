@@ -790,6 +790,15 @@ body[data-view="history"] .settings-panel {
   background: rgba(255, 255, 255, 0.42);
 }
 
+.history-export-button {
+  flex: 0 0 auto;
+}
+
+.history-export-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .period-button,
 .history-nav-button {
   border: 0;
@@ -812,8 +821,9 @@ body[data-view="history"] .settings-panel {
 
 .history-navigator {
   display: grid;
-  grid-template-columns: 28px 1fr 28px;
+  grid-template-columns: 28px minmax(0, 1fr) 28px 112px;
   align-items: center;
+  gap: 6px;
   margin-top: 8px;
 }
 
@@ -837,6 +847,20 @@ body[data-view="history"] .settings-panel {
   opacity: 0.35;
 }
 
+.history-metric-control select {
+  width: 112px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid rgba(90, 112, 150, 0.14);
+  border-radius: 7px;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.56);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  outline: none;
+}
+
 .history-chart-shell {
   position: relative;
   height: 154px;
@@ -851,6 +875,51 @@ body[data-view="history"] .settings-panel {
   display: block;
   width: 100%;
   height: 100%;
+  cursor: crosshair;
+}
+
+.history-tooltip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  min-width: 132px;
+  gap: 4px;
+  padding: 7px 9px;
+  border: 1px solid rgba(90, 112, 150, 0.18);
+  border-radius: 7px;
+  color: #334155;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 18px rgba(51, 65, 85, 0.16);
+  pointer-events: none;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.history-tooltip[hidden] {
+  display: none;
+}
+
+.history-tooltip strong {
+  margin-bottom: 1px;
+  font-size: 10px;
+}
+
+.history-tooltip span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.history-tooltip span::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+  content: "";
+}
+
+.history-tooltip span:last-child::before {
+  background: #ef5c68;
 }
 
 .history-empty {
@@ -980,6 +1049,7 @@ body[data-theme="dark"] .icon-button,
 body[data-theme="dark"] .auto-refresh select,
 body[data-theme="dark"] .settings-row select,
 body[data-theme="dark"] .settings-action-button,
+body[data-theme="dark"] .history-metric-control select,
 body[data-theme="dark"] .history-periods,
 body[data-theme="dark"] .history-nav-button {
   border-color: rgba(148, 163, 184, 0.2);
@@ -989,6 +1059,13 @@ body[data-theme="dark"] .history-nav-button {
 
 body[data-theme="dark"] .settings-row .update-status-copy small {
   color: #94a3b8;
+}
+
+body[data-theme="dark"] .history-tooltip {
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+  background: rgba(15, 23, 42, 0.94);
+  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.34);
 }
 
 body[data-theme="dark"] .icon-button.has-update::after {

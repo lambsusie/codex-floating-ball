@@ -54,9 +54,10 @@ contextBridge.exposeInMainWorld("codexQuota", {
   setCompactAppearance: async (value) => normalizeCompactAppearance(value),
   recordHistory: async () => null,
   getHistory: async (range) => getHistory(range),
-  getAppVersion: async () => "1.1.0",
+  exportHistory: async () => ({ canceled: false, recordCount: 42, filePath: "C:\\Temp\\quota.csv" }),
+  getAppVersion: async () => "1.1.1",
   checkForUpdates: async () => ({
-    currentVersion: "1.1.0",
+    currentVersion: "1.1.1",
     latestVersion: "1.2.0",
     releaseUrl: "https://github.com/lambsusie/codex-floating-ball/releases/tag/v1.2.0",
     updateAvailable: true

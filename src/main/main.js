@@ -1,8 +1,8 @@
-const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, net, Notification, screen } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage, net, Notification, screen } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { getQuota, resolveCodexPath, shutdownQuotaService } = require("./quota-service");
-const { appendHistory, readHistoryRange } = require("./history-service");
+const { appendHistory, exportHistoryCsv, readHistoryRange } = require("./history-service");
 const { DEFAULT_COMPACT_APPEARANCE, normalizeCompactAppearance } = require("./compact-appearance");
 const { checkForUpdate, RELEASES_PAGE_URL } = require("./update-service");
 
@@ -123,6 +123,19 @@ function getSettingsPath() {
 
 function getHistoryPath() {
   return path.join(app.getPath("userData"), "quota-history.ndjson");
+}
+
+async function exportHistory(language) {
+  const date = new Date().toISOString().slice(0, 10);
+  const isEnglish = language === "en";
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: isEnglish ? "Export Codex quota history" : "导出 Codex 额度记录",
+    defaultPath: path.join(app.getPath("downloads"), `Codex-quota-history-${date}.csv`),
+    filters: [{ name: "CSV", extensions: ["csv"] }]
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+  const outputPath = path.extname(result.filePath).toLowerCase() === ".csv" ? result.filePath : `${result.filePath}.csv`;
+  return { canceled: false, ...exportHistoryCsv(getHistoryPath(), outputPath) };
 }
 
 function writeSettings(settings) {
@@ -352,6 +365,7 @@ app.whenReady().then(() => {
   ipcMain.handle("settings:compactAppearance:set", (_event, value) => setCompactAppearance(value));
   ipcMain.handle("history:record", (_event, quota) => appendHistory(getHistoryPath(), quota));
   ipcMain.handle("history:get", (_event, range) => readHistoryRange(getHistoryPath(), range?.start, range?.end));
+  ipcMain.handle("history:export", (_event, language) => exportHistory(language));
   ipcMain.handle("app:version", () => app.getVersion());
   ipcMain.handle("updates:check", () => getLatestUpdate());
   ipcMain.handle("updates:notify", (_event, language) => showUpdateNotification(language));
