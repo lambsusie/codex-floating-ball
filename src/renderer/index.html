@@ -288,6 +288,11 @@
               <strong id="historyTitle">额度消耗</strong>
               <span id="historySubtitle">每次刷新自动记录</span>
             </div>
+            <button id="historyExportBtn" class="icon-button history-export-button" type="button" title="导出记录" aria-label="导出记录">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v12M8 11l4 4 4-4M5 20h14" />
+              </svg>
+            </button>
             <div class="history-periods" role="tablist" aria-label="历史时间范围">
               <button class="period-button" type="button" data-period="cycle">5h</button>
               <button class="period-button active" type="button" data-period="day">日</button>
@@ -299,10 +304,21 @@
             <button id="historyPrevBtn" class="history-nav-button" type="button" aria-label="上一时段">‹</button>
             <strong id="historyRangeLabel">--</strong>
             <button id="historyNextBtn" class="history-nav-button" type="button" aria-label="下一时段">›</button>
+            <label class="history-metric-control">
+              <select id="historyMetricSelect" aria-label="纵轴显示">
+                <option value="used">消耗额度</option>
+                <option value="remaining">剩余额度</option>
+              </select>
+            </label>
           </div>
           <div class="history-chart-shell">
             <canvas id="historyChart" width="928" height="300" aria-label="额度消耗折线图"></canvas>
             <div id="historyEmpty" class="history-empty">这一时段还没有记录</div>
+            <div id="historyTooltip" class="history-tooltip" role="status" hidden>
+              <strong id="historyTooltipTime">--</strong>
+              <span id="historyTooltipPrimary">--</span>
+              <span id="historyTooltipSecondary">--</span>
+            </div>
           </div>
           <div class="history-legend">
             <span><i class="legend-primary"></i><span id="historyPrimaryLegend">5小时已用</span></span>

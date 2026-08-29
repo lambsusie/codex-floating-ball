@@ -1,14 +1,13 @@
-# macOS v1.1.0 构建说明
+# macOS v1.1.1 构建说明
 
-该目录是 Codex Floating Ball v1.1.0 的 macOS 发布源码，支持：
+该目录是 Codex Floating Ball v1.1.1 的 macOS 发布源码，支持：
 
 - Apple Silicon：`arm64`
 - Intel Mac：`x64`
+- 5 小时与 7 天额度历史记录和 CSV 导出
+- 历史曲线可切换已用额度/剩余额度，并支持数据点悬停提示
+- 智能刷新、可调悬浮球和可选的 GitHub Release 更新检查
 - macOS 菜单栏托盘模式，不在 Dock 常驻
-- 5 小时与 7 天额度历史、5 小时/日/周/月消耗曲线
-- 可调悬浮球尺寸、额度字号与重置时间字号
-- 智能刷新与可配置的低频采样
-- 可选的 GitHub Release 自动更新检查、macOS 系统通知和手动检查按钮
 
 ## 推荐：使用 GitHub Actions 构建
 
@@ -24,8 +23,8 @@
 生成的文件名为：
 
 ```text
-Codex-Floating-Ball-1.1.0-mac-arm64.dmg
-Codex-Floating-Ball-1.1.0-mac-x64.dmg
+Codex-Floating-Ball-1.1.1-mac-arm64.dmg
+Codex-Floating-Ball-1.1.1-mac-x64.dmg
 ```
 
 ## 在 Mac 本机构建
@@ -45,13 +44,13 @@ npm run build:mac:x64
 
 ## 升级与本地数据
 
-从 v1.0.0 升级到 v1.1.0 不会删除历史记录。macOS 数据保存在：
+从 v1.0.0 或 v1.1.0 升级到 v1.1.1 不会删除历史记录。macOS 数据保存在：
 
 ```text
 ~/Library/Application Support/codex-floating-ball/quota-history.ndjson
 ```
 
-自动检查更新默认开启，每 24 小时查询一次本项目的 GitHub 最新 Release。用户可在设置中关闭自动检查，或使用“检查更新”按钮手动查询。
+CSV 导出只读取本机历史文件，并写入用户在保存窗口中选择的位置。
 
 ## 无签名版本说明
 
@@ -59,4 +58,4 @@ npm run build:mac:x64
 
 ## English
 
-This source package builds unsigned Codex Floating Ball v1.1.0 DMGs for Apple Silicon (`arm64`) and Intel (`x64`). It includes quota history, smart refresh, adjustable floating-ball typography, and an optional daily GitHub Release update check with macOS notifications. Run the **Build macOS packages** GitHub Actions workflow, or run `npm ci && npm test && npm run build:mac` on a Mac. Each workflow artifact contains a DMG and its SHA-256 checksum.
+This package builds unsigned Codex Floating Ball v1.1.1 DMGs for Apple Silicon (`arm64`) and Intel (`x64`). It adds CSV history export, used/remaining chart modes, and hover details for chart data points. Run the **Build macOS packages** GitHub Actions workflow, or run `npm ci && npm test && npm run build:mac` on a Mac. Each workflow artifact contains a DMG and its SHA-256 checksum.
