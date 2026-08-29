@@ -45,3 +45,16 @@ test("main selector displays the synchronized smart interval while active", () =
     10
   );
 });
+
+test("main selector displays the reduced interval while smart refresh is idle", () => {
+  assert.equal(
+    getDisplayedRefreshMinutes({
+      smartEnabled: true,
+      smartMode: "idle",
+      smartActiveRefreshMinutes: 1,
+      smartIdleRefreshMinutes: 30,
+      regularRefreshMinutes: 5
+    }),
+    30
+  );
+});

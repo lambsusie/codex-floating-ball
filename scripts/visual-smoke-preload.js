@@ -54,6 +54,15 @@ contextBridge.exposeInMainWorld("codexQuota", {
   setCompactAppearance: async (value) => normalizeCompactAppearance(value),
   recordHistory: async () => null,
   getHistory: async (range) => getHistory(range),
+  getAppVersion: async () => "1.1.0",
+  checkForUpdates: async () => ({
+    currentVersion: "1.1.0",
+    latestVersion: "1.2.0",
+    releaseUrl: "https://github.com/lambsusie/codex-floating-ball/releases/tag/v1.2.0",
+    updateAvailable: true
+  }),
+  notifyUpdate: async () => true,
+  openUpdatePage: async () => true,
   openCodex: async () => {},
   onRefresh: () => {},
   onAlwaysOnTopChanged: () => {},

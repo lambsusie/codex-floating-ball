@@ -332,7 +332,20 @@ body[data-mode="detail"] .compact-widget {
 }
 
 .icon-button {
+  position: relative;
   width: 28px;
+}
+
+.icon-button.has-update::after {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid rgba(248, 250, 252, 0.94);
+  border-radius: 50%;
+  background: #ef4444;
+  content: "";
 }
 
 .icon-button svg {
@@ -607,6 +620,41 @@ body[data-view="history"] .settings-panel {
   background: rgba(255, 255, 255, 0.7);
   font: inherit;
   outline: none;
+}
+
+.settings-row .update-status-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.settings-row .update-status-copy small {
+  overflow: hidden;
+  max-width: 260px;
+  color: #7a8797;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-action-button {
+  min-width: 76px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: 8px;
+  color: #0d6bce;
+  background: rgba(219, 238, 255, 0.76);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-action-button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .settings-range-row > span {
@@ -931,11 +979,20 @@ body[data-theme="dark"] .text-button,
 body[data-theme="dark"] .icon-button,
 body[data-theme="dark"] .auto-refresh select,
 body[data-theme="dark"] .settings-row select,
+body[data-theme="dark"] .settings-action-button,
 body[data-theme="dark"] .history-periods,
 body[data-theme="dark"] .history-nav-button {
   border-color: rgba(148, 163, 184, 0.2);
   color: #e9eefb;
   background: rgba(30, 41, 59, 0.72);
+}
+
+body[data-theme="dark"] .settings-row .update-status-copy small {
+  color: #94a3b8;
+}
+
+body[data-theme="dark"] .icon-button.has-update::after {
+  border-color: rgba(15, 23, 42, 0.94);
 }
 
 body[data-theme="dark"] .history-navigator strong {

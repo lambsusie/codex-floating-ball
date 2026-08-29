@@ -52,6 +52,14 @@
     })).filter((point) => Number.isFinite(point.timestamp));
   }
 
+  function getAxisTickValues(mode, range) {
+    const intervals = mode === "cycle" ? 5 : mode === "week" ? 7 : 6;
+    const span = range.end - range.start;
+    return Array.from({ length: intervals + 1 }, (_value, index) => (
+      range.start + (span * index) / intervals
+    ));
+  }
+
   function remainingToUsed(value) {
     if (value === null || value === undefined || value === "") return null;
     const number = Number(value);
@@ -68,7 +76,7 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  const api = { buildConsumptionSeries, getPeriodRange, shiftPeriod };
+  const api = { buildConsumptionSeries, getAxisTickValues, getPeriodRange, shiftPeriod };
   globalObject.historyUtils = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(globalThis);
