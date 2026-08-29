@@ -16,7 +16,9 @@
 
   function getDisplayedRefreshMinutes(state) {
     if (!state.smartEnabled) return state.regularRefreshMinutes;
-    return state.smartMode === "manual" ? 0 : state.smartActiveRefreshMinutes;
+    if (state.smartMode === "manual") return 0;
+    if (state.smartMode === "idle") return state.smartIdleRefreshMinutes;
+    return state.smartActiveRefreshMinutes;
   }
 
   const api = { getQuotaUsageFingerprint, getDisplayedRefreshMinutes };

@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke"));
+app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-update-final-2"));
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -64,6 +64,49 @@ app.whenReady().then(async () => {
     };
   })()`);
 
+  await window.webContents.executeJavaScript("document.getElementById('checkUpdateBtn').click()");
+  await wait(200);
+  await window.webContents.executeJavaScript("document.querySelector('.settings-scroll').scrollTop = 130");
+  await wait(100);
+  const settingsUpdate = await capture(window, "settings-update");
+  const updateMetrics = await window.webContents.executeJavaScript(`({
+    autoCheckEnabled: document.getElementById('autoUpdateToggle').checked,
+    status: document.getElementById('updateStatusText').textContent,
+    action: document.getElementById('checkUpdateBtn').textContent,
+    settingsHasUpdateDot: document.getElementById('settingsBtn').classList.contains('has-update'),
+    settingsScrollTop: document.querySelector('.settings-scroll').scrollTop
+  })`);
+  const updateDisabledMetrics = await window.webContents.executeJavaScript(`(() => {
+    const toggle = document.getElementById('autoUpdateToggle');
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    return {
+      storedValue: localStorage.getItem('codex-led-auto-check-updates'),
+      timerActive: Boolean(state.updateCheckTimer)
+    };
+  })()`);
+
+  await window.webContents.executeJavaScript(`(async () => {
+    const toggle = document.getElementById('smartEnabledToggle');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const idleSelect = document.getElementById('smartIdleRefreshSelect');
+    idleSelect.value = '30';
+    idleSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    await enterSmartIdleMode();
+    const scroll = document.querySelector('.settings-scroll');
+    scroll.scrollTop = scroll.scrollHeight;
+  })()`);
+  await wait(200);
+  const settingsSmart = await capture(window, "settings-smart");
+  const smartMetrics = await window.webContents.executeJavaScript(`({
+    idleRefreshValue: document.getElementById('smartIdleRefreshSelect').value,
+    mainRefreshValue: document.getElementById('autoRefreshSelect').value,
+    status: document.getElementById('smartStatusText').textContent,
+    idleControlVisible: !document.getElementById('smartIdleRefreshSelect').closest('.settings-row').hidden
+  })`);
+
   await window.webContents.executeJavaScript("document.getElementById('historyBtn').click()");
   await wait(300);
   const history = await capture(window, "history");
@@ -76,7 +119,12 @@ app.whenReady().then(async () => {
       panelBottom: Math.round(panel.bottom),
       chartWidth: Math.round(chart.width),
       chartHeight: Math.round(chart.height),
-      fitsPanel: panel.bottom <= detail.bottom
+      fitsPanel: panel.bottom <= detail.bottom,
+      periodOrder: [...document.querySelectorAll('[data-period]')].map((button) => button.dataset.period),
+      tickCounts: Object.fromEntries(['cycle', 'day', 'week', 'month'].map((period) => [
+        period,
+        historyUtils.getAxisTickValues(period, historyUtils.getPeriodRange(period, new Date())).length
+      ]))
     };
   })()`);
 
@@ -97,7 +145,7 @@ app.whenReady().then(async () => {
   await wait(200);
   const compact = await capture(window, "compact-max");
 
-  process.stdout.write(`${JSON.stringify({ main, settings, history, compact, startupMetrics, settingsMetrics, historyMetrics, compactMetrics, diagnostics })}\n`);
+  process.stdout.write(`${JSON.stringify({ main, settings, settingsUpdate, settingsSmart, history, compact, startupMetrics, settingsMetrics, updateMetrics, updateDisabledMetrics, smartMetrics, historyMetrics, compactMetrics, diagnostics })}\n`);
   window.destroy();
   app.quit();
 });

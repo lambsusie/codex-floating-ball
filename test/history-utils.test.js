@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const {
   buildConsumptionSeries,
+  getAxisTickValues,
   getPeriodRange,
   shiftPeriod
 } = require("../src/renderer/history-utils");
@@ -33,4 +34,17 @@ test("converts remaining quota to consumed quota", () => {
   ]), [
     { timestamp: 10, primaryUsed: 25, secondaryUsed: 60 }
   ]);
+});
+
+test("builds denser chronological axis ticks for every history period", () => {
+  const range = { start: 1000, end: 8000 };
+  const expectedLengths = { cycle: 6, day: 7, week: 8, month: 7 };
+
+  for (const [period, expectedLength] of Object.entries(expectedLengths)) {
+    const ticks = getAxisTickValues(period, range);
+    assert.equal(ticks.length, expectedLength);
+    assert.equal(ticks[0], range.start);
+    assert.equal(ticks.at(-1), range.end);
+    assert.ok(ticks.every((value, index) => index === 0 || value > ticks[index - 1]));
+  }
 });

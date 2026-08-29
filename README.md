@@ -46,6 +46,12 @@ Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工
 
 ### 项目亮点
 
+#### v1.1.0：低频采样与更新提醒
+
+v1.1.0 扩展了智能刷新机制。额度在设定时间内没有变化后，可以切换为 **手动刷新、每 30 分钟采样或每 60 分钟采样**；低频采样检测到额度再次变化，或用户主动刷新后，会自动恢复活跃刷新间隔。主界面会显示当前实际刷新频率，重新选择分钟数也可以立即恢复活跃模式。
+
+应用还加入了可选的 GitHub Release 更新检查。自动检查默认开启，每 24 小时检查一次；发现新版本时会显示系统通知和设置按钮红点，也可以在设置页随时手动检查。该功能只访问本项目的 GitHub Releases API，不会发送额度、Codex Token 或账户信息。
+
 #### v1.0.0：额度历史与可调悬浮球
 
 v1.0.0 会在每次成功刷新时，将 5 小时和 7 天额度快照追加保存到本机应用数据目录。历史页面支持按 **日、周、月、5 小时周期** 查看两条额度消耗折线，并可前后切换到更早的时间段。
@@ -69,26 +75,26 @@ v1.0.0 会在每次成功刷新时，将 5 小时和 7 天额度快照追加保�
 
 在运行 Codex 项目或长任务期间，组件会按照设定的间隔持续更新额度，方便及时观察额度变化。
 
-如果经过设定时间后额度始终没有变化，组件会自动：
+如果经过设定时间后额度始终没有变化，组件会根据设置自动进入：
 
-**自动刷新 → 手动刷新模式**
+**活跃刷新 → 手动模式或低频采样模式**
 
-这样在 Codex 工作结束后，组件不会继续长期在后台按分钟重复查询。
+低频采样可选择每 30 分钟或每 60 分钟检查一次。这样在 Codex 工作结束后，组件不会继续长期在后台按分钟重复查询，同时仍能发现新的额度变化。
 
 当你再次：
 
 - 双击悬浮球
 - 点击手动刷新
 
-智能自动刷新会重新启用。
+智能自动刷新会重新启用。低频采样检测到额度变化时也会自动恢复活跃间隔。
 
 这使组件能够在两种状态之间自动切换：
 
 **活跃使用 Codex → 高频关注额度变化**
 
-**停止使用 Codex → 自动减少不必要的后台刷新**
+**停止使用 Codex → 手动模式或低频采样，减少不必要的后台刷新**
 
-主界面的刷新间隔选择器与设置页面中的智能刷新配置保持同步；智能刷新暂停后，主界面会明确显示为手动模式。
+主界面的刷新间隔选择器与设置页面中的智能刷新配置保持同步，并会显示手动、30 分钟或 60 分钟等当前实际频率；重新选择分钟数即可恢复活跃刷新。
 
 #### 灵活的重置时间显示
 
@@ -146,9 +152,10 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 - 支持回溯更早的历史周期；历史记录仅保存在本机应用数据目录。
 - 悬浮球直径、额度字号和重置时间字号可分别调整，并自动避免文字重叠。
 - 悬浮球、5 小时额度和周额度可分别设置为显示剩余时间或具体重置时刻。
-- 支持智能刷新，可配置活跃刷新间隔和额度无变化超时。
-- 额度长期无变化后自动切换为手动刷新，手动刷新或双击悬浮球后恢复智能自动刷新。
-- 主界面的刷新间隔与设置页同步。
+- 支持智能刷新，可配置活跃刷新间隔、额度无变化超时和无变化后的采样频率。
+- 额度长期无变化后可切换为手动、30 分钟或 60 分钟低频采样；检测到额度变化、手动刷新或双击悬浮球后恢复活跃刷新。
+- 主界面的刷新间隔与设置页同步，并显示当前实际刷新频率。
+- 可选的自动更新检查每天查询一次 GitHub Releases；发现新版时显示系统通知和设置按钮红点，也支持手动检查。
 - 可设置周额度预警阈值。
 - 周额度低于设定阈值时，可通过额外告警提示提醒用户。
 - 支持中文 / English。
@@ -283,6 +290,12 @@ The project follows a local-first approach:
 
 ### Highlights
 
+#### v1.1.0: idle sampling and update notifications
+
+Version 1.1.0 extends Smart Refresh with **Manual, 30-minute, and 60-minute idle sampling modes** after quota remains unchanged for the configured period. A detected quota change or a manual refresh automatically restores the active interval. The main selector shows the actual current refresh frequency, and selecting a minute interval resumes active mode immediately.
+
+The app also adds an optional GitHub Release update check. Automatic checks are enabled by default and run once every 24 hours. A newer release triggers a system notification and a badge on the Settings button, while a manual check remains available. This feature only contacts this project's GitHub Releases API and does not send quota data, Codex Tokens, or account information.
+
 #### v1.0.0: quota history and a resizable floating ball
 
 Version 1.0.0 appends a local snapshot of the 5-hour and 7-day quotas after every successful refresh. The history view plots both consumption series by **day, week, month, or 5-hour cycle**, with navigation to earlier periods.
@@ -306,13 +319,13 @@ You can configure:
 
 While Codex tasks are running, the widget refreshes at the selected interval so quota changes can be monitored closely.
 
-If the quota remains unchanged for the configured period, the app automatically switches from:
+If the quota remains unchanged for the configured period, the app switches from:
 
-**automatic refresh → manual refresh mode**
+**active refresh → manual mode or low-frequency sampling**
 
-This prevents the widget from continuing unnecessary minute-by-minute background polling after active Codex work has finished.
+Low-frequency sampling can run every 30 or 60 minutes. This prevents unnecessary minute-by-minute background polling after active Codex work has finished while still allowing the app to detect renewed quota activity.
 
-Smart refresh automatically becomes active again when you:
+Smart refresh automatically becomes active again when idle sampling detects a quota change or when you:
 
 - Double-click the floating ball
 - Trigger a manual refresh
@@ -321,9 +334,9 @@ The result is a workflow that naturally adapts between:
 
 **Active Codex usage → frequent quota monitoring**
 
-**Inactive period → quieter manual mode**
+**Inactive period → quieter manual or low-frequency sampling mode**
 
-The refresh interval selector in the main panel stays synchronized with the Smart Refresh settings. When Smart Refresh pauses, the main interface clearly indicates manual mode.
+The refresh interval selector in the main panel stays synchronized with the Smart Refresh settings and shows the actual Manual, 30-minute, or 60-minute state. Selecting a minute interval resumes active refresh.
 
 #### Flexible reset-time display
 
@@ -381,9 +394,10 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 - Navigation to earlier history periods; quota history remains in the local application-data directory.
 - Independent controls for floating-ball diameter, quota font size, and reset-time font size, with automatic overlap prevention.
 - Independent reset-time display settings for the floating ball, 5-hour quota, and weekly quota.
-- Smart Refresh with configurable active interval and quota-inactivity timeout.
-- Automatically switches to manual refresh after quota remains unchanged and resumes Smart Refresh after manual refresh or double-click.
-- Main-panel refresh controls stay synchronized with the settings page.
+- Smart Refresh with configurable active interval, quota-inactivity timeout, and idle sampling frequency.
+- Manual, 30-minute, or 60-minute idle sampling after quota remains unchanged; active refresh resumes after a detected change, manual refresh, or double-click.
+- Main-panel refresh controls stay synchronized with the settings page and show the actual current frequency.
+- Optional daily GitHub Release update checks with system notifications, a Settings badge, and manual checking.
 - Adjustable weekly-quota alert threshold.
 - Additional warning notification when weekly quota falls below the configured threshold.
 - Chinese and English interface.

@@ -153,6 +153,17 @@
                 <option value="dark">深色</option>
               </select>
             </label>
+            <label class="settings-row settings-toggle-row">
+              <span id="autoUpdateSettingLabel">自动检查更新</span>
+              <input id="autoUpdateToggle" class="settings-toggle" type="checkbox" role="switch" aria-label="自动检查更新" />
+            </label>
+            <div class="settings-row update-status-row">
+              <span class="update-status-copy">
+                <span id="versionSettingLabel">版本更新</span>
+                <small id="updateStatusText" aria-live="polite">当前版本 v1.1.0</small>
+              </span>
+              <button id="checkUpdateBtn" class="settings-action-button" type="button">检查更新</button>
+            </div>
             <label class="settings-row">
               <span id="weeklyThresholdLabel">周额度报警</span>
               <select id="weeklyThresholdSelect" aria-label="周额度报警">
@@ -235,8 +246,8 @@
                 </select>
               </label>
               <label class="settings-row">
-                <span id="smartIdleTimeoutLabel">无变化后转手动</span>
-                <select id="smartIdleTimeoutSelect" aria-label="无变化后转手动">
+                <span id="smartIdleTimeoutLabel">额度无变化持续</span>
+                <select id="smartIdleTimeoutSelect" aria-label="额度无变化持续">
                   <option value="5">5分钟</option>
                   <option value="10">10分钟</option>
                   <option value="15">15分钟</option>
@@ -245,6 +256,14 @@
                   <option value="60">60分钟</option>
                   <option value="90">90分钟</option>
                   <option value="120">120分钟</option>
+                </select>
+              </label>
+              <label class="settings-row">
+                <span id="smartIdleRefreshLabel">无变化后刷新</span>
+                <select id="smartIdleRefreshSelect" aria-label="无变化后刷新">
+                  <option value="0">手动</option>
+                  <option value="30">30分钟</option>
+                  <option value="60">60分钟</option>
                 </select>
               </label>
               <div class="settings-row smart-status-row">
@@ -270,10 +289,10 @@
               <span id="historySubtitle">每次刷新自动记录</span>
             </div>
             <div class="history-periods" role="tablist" aria-label="历史时间范围">
+              <button class="period-button" type="button" data-period="cycle">5h</button>
               <button class="period-button active" type="button" data-period="day">日</button>
               <button class="period-button" type="button" data-period="week">周</button>
               <button class="period-button" type="button" data-period="month">月</button>
-              <button class="period-button" type="button" data-period="cycle">5h</button>
             </div>
           </div>
           <div class="history-navigator">

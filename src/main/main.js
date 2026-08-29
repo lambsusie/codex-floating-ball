@@ -1,13 +1,15 @@
-const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, screen } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, net, Notification, screen } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { getQuota, resolveCodexPath, shutdownQuotaService } = require("./quota-service");
 const { appendHistory, readHistoryRange } = require("./history-service");
 const { DEFAULT_COMPACT_APPEARANCE, normalizeCompactAppearance } = require("./compact-appearance");
+const { checkForUpdate, RELEASES_PAGE_URL } = require("./update-service");
 
 const DETAIL_SIZE = { width: 520, height: 360 };
 const DEFAULT_WINDOW_MODE = "compact";
 const AUTO_REFRESH_OPTIONS = new Set([0, 1, 5, 10, 30, 60]);
+const APP_ID = "io.github.lambsusie.codexfloatingball";
 
 let mainWindow;
 let tray;
@@ -16,6 +18,9 @@ let currentWindowMode = DEFAULT_WINDOW_MODE;
 let compactAlertActive = false;
 let compactAppearance = { ...DEFAULT_COMPACT_APPEARANCE };
 let saveBoundsTimer;
+let availableUpdate;
+
+if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 
 function createWindow() {
   const initialSize = getWindowSize(currentWindowMode);
@@ -305,6 +310,27 @@ function toggleWindow() {
   mainWindow.focus();
 }
 
+async function getLatestUpdate() {
+  const result = await checkForUpdate({ currentVersion: app.getVersion(), fetchImpl: net.fetch });
+  availableUpdate = result.updateAvailable ? result : undefined;
+  return result;
+}
+
+function showUpdateNotification(language) {
+  if (!availableUpdate || !Notification.isSupported()) return false;
+  const update = availableUpdate;
+  const isEnglish = language === "en";
+  const notification = new Notification({
+    title: isEnglish ? "Codex Floating Ball update" : "Codex Floating Ball 有新版本",
+    body: isEnglish
+      ? `Version ${update.latestVersion} is available. Click to view the download.`
+      : `v${update.latestVersion} 已发布，点击查看下载。`
+  });
+  notification.on("click", () => shell.openExternal(update.releaseUrl));
+  notification.show();
+  return true;
+}
+
 app.whenReady().then(() => {
   if (process.platform === "darwin") app.dock?.hide();
   compactAppearance = normalizeCompactAppearance(readSettings().compactAppearance);
@@ -326,6 +352,10 @@ app.whenReady().then(() => {
   ipcMain.handle("settings:compactAppearance:set", (_event, value) => setCompactAppearance(value));
   ipcMain.handle("history:record", (_event, quota) => appendHistory(getHistoryPath(), quota));
   ipcMain.handle("history:get", (_event, range) => readHistoryRange(getHistoryPath(), range?.start, range?.end));
+  ipcMain.handle("app:version", () => app.getVersion());
+  ipcMain.handle("updates:check", () => getLatestUpdate());
+  ipcMain.handle("updates:notify", (_event, language) => showUpdateNotification(language));
+  ipcMain.handle("updates:open", () => shell.openExternal(availableUpdate?.releaseUrl || RELEASES_PAGE_URL));
   ipcMain.handle("external:openCodex", () => {
     shell.openPath(resolveCodexPath());
   });
@@ -335,8 +365,8 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("window-all-closed", () => {
-  // Keep the tray-only app alive when the last window is closed.
+app.on("window-all-closed", (event) => {
+  event.preventDefault();
 });
 
 app.on("before-quit", shutdownQuotaService);

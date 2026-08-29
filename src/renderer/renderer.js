@@ -19,6 +19,15 @@ const labels = {
     theme: "主题",
     themeLight: "浅色",
     themeDark: "深色",
+    autoUpdate: "自动检查更新",
+    versionUpdate: "版本更新",
+    currentVersion: "当前版本 v{version}",
+    checkingUpdate: "正在检查更新...",
+    updateCurrent: "已是最新版本 · v{version}",
+    updateAvailable: "发现新版本 v{version}",
+    updateFailed: "检查失败，请稍后重试",
+    checkUpdate: "检查更新",
+    viewUpdate: "查看新版",
     weeklyAlert: "周额度报警",
     primaryTimeDisplay: "5小时额度时间",
     secondaryTimeDisplay: "7天额度时间",
@@ -44,12 +53,14 @@ const labels = {
     regularRefresh: "常规刷新",
     smartEnabled: "智能启用",
     smartActiveRefresh: "活跃刷新间隔",
-    smartIdleTimeout: "无变化后转手动",
+    smartIdleTimeout: "额度无变化持续",
+    smartIdleRefresh: "无变化后刷新",
     smartStatus: "当前状态",
     smartActive: "自动刷新",
+    smartIdle: "低频刷新",
     smartPaused: "手动刷新",
     smartManaged: "智能模式正在管理刷新间隔。",
-    smartHint: "额度连续 {idle} 无变化后会切换为手动；手动刷新会恢复 {interval} 自动刷新。",
+    smartHint: "额度连续 {idle} 无变化后切换为 {idleRefresh}；检测到额度变化或手动刷新后恢复 {interval}。",
     history: "额度历史",
     historyTitle: "额度消耗",
     historySubtitle: "每次刷新自动记录",
@@ -88,6 +99,15 @@ const labels = {
     theme: "Theme",
     themeLight: "Light",
     themeDark: "Dark",
+    autoUpdate: "Automatically check for updates",
+    versionUpdate: "App updates",
+    currentVersion: "Current version v{version}",
+    checkingUpdate: "Checking for updates...",
+    updateCurrent: "Up to date · v{version}",
+    updateAvailable: "Version v{version} is available",
+    updateFailed: "Could not check for updates",
+    checkUpdate: "Check now",
+    viewUpdate: "View update",
     weeklyAlert: "Weekly alert",
     primaryTimeDisplay: "5-hour quota time",
     secondaryTimeDisplay: "7-day quota time",
@@ -113,12 +133,14 @@ const labels = {
     regularRefresh: "Regular refresh",
     smartEnabled: "Smart refresh",
     smartActiveRefresh: "Active refresh interval",
-    smartIdleTimeout: "Switch to manual after",
+    smartIdleTimeout: "Quota unchanged for",
+    smartIdleRefresh: "Refresh after idle",
     smartStatus: "Current state",
     smartActive: "Auto refreshing",
+    smartIdle: "Low-frequency refresh",
     smartPaused: "Manual refresh",
     smartManaged: "Smart refresh is managing this interval.",
-    smartHint: "Switches to manual after {idle} without quota changes. A manual refresh restores {interval} auto refresh.",
+    smartHint: "After {idle} without quota changes, switches to {idleRefresh}. A detected change or manual refresh restores {interval}.",
     history: "Quota history",
     historyTitle: "Quota usage",
     historySubtitle: "Recorded on every refresh",
@@ -144,15 +166,24 @@ const COMPACT_DOUBLE_CLICK_MS = 260;
 const AUTO_REFRESH_MINUTES = new Set([0, 1, 5, 10, 30, 60]);
 const SMART_ACTIVE_REFRESH_MINUTES = new Set([1, 5, 10, 30, 60]);
 const SMART_IDLE_MINUTES = new Set([5, 10, 15, 30, 45, 60, 90, 120]);
+const SMART_IDLE_REFRESH_MINUTES = new Set([0, 30, 60]);
 const DEFAULT_SMART_ACTIVE_REFRESH_MINUTES = 1;
 const DEFAULT_SMART_IDLE_MINUTES = 30;
+const DEFAULT_SMART_IDLE_REFRESH_MINUTES = 0;
+const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const TIME_DISPLAY_MODES = new Set(["duration", "point"]);
 const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = window.smartRefreshUtils;
-const { buildConsumptionSeries, getPeriodRange, shiftPeriod } = window.historyUtils;
+const { buildConsumptionSeries, getAxisTickValues, getPeriodRange, shiftPeriod } = window.historyUtils;
 
 const state = {
   lang: getStoredLanguage(),
   theme: getStoredTheme(),
+  autoCheckUpdates: getStoredAutoCheckUpdates(),
+  currentVersion: "",
+  updateStatus: "idle",
+  updateChecking: false,
+  availableUpdate: null,
+  updateCheckTimer: undefined,
   loading: false,
   alwaysOnTop: true,
   mode: "compact",
@@ -168,6 +199,7 @@ const state = {
   smartEnabled: getStoredSmartEnabled(),
   smartActiveRefreshMinutes: getStoredRefreshMinutes("codex-led-smart-active-refresh-minutes", DEFAULT_SMART_ACTIVE_REFRESH_MINUTES, SMART_ACTIVE_REFRESH_MINUTES),
   smartIdleMinutes: getStoredRefreshMinutes("codex-led-smart-idle-minutes", DEFAULT_SMART_IDLE_MINUTES, SMART_IDLE_MINUTES),
+  smartIdleRefreshMinutes: getStoredRefreshMinutes("codex-led-smart-idle-refresh-minutes", DEFAULT_SMART_IDLE_REFRESH_MINUTES, SMART_IDLE_REFRESH_MINUTES),
   smartMode: getStoredSmartMode(),
   smartLastFingerprint: localStorage.getItem("codex-led-smart-last-fingerprint"),
   smartLastChangeAt: getStoredSmartLastChangeAt(),
@@ -219,6 +251,11 @@ const el = {
   languageSelect: document.getElementById("languageSelect"),
   themeSettingLabel: document.getElementById("themeSettingLabel"),
   themeSelect: document.getElementById("themeSelect"),
+  autoUpdateSettingLabel: document.getElementById("autoUpdateSettingLabel"),
+  autoUpdateToggle: document.getElementById("autoUpdateToggle"),
+  versionSettingLabel: document.getElementById("versionSettingLabel"),
+  updateStatusText: document.getElementById("updateStatusText"),
+  checkUpdateBtn: document.getElementById("checkUpdateBtn"),
   weeklyThresholdLabel: document.getElementById("weeklyThresholdLabel"),
   weeklyThresholdSelect: document.getElementById("weeklyThresholdSelect"),
   primaryTimeDisplayLabel: document.getElementById("primaryTimeDisplayLabel"),
@@ -246,6 +283,8 @@ const el = {
   smartActiveRefreshSelect: document.getElementById("smartActiveRefreshSelect"),
   smartIdleTimeoutLabel: document.getElementById("smartIdleTimeoutLabel"),
   smartIdleTimeoutSelect: document.getElementById("smartIdleTimeoutSelect"),
+  smartIdleRefreshLabel: document.getElementById("smartIdleRefreshLabel"),
+  smartIdleRefreshSelect: document.getElementById("smartIdleRefreshSelect"),
   smartStatusLabel: document.getElementById("smartStatusLabel"),
   smartStatusText: document.getElementById("smartStatusText"),
   settingsHint: document.getElementById("settingsHint"),
@@ -286,6 +325,10 @@ function getStoredTheme() {
   return value === "dark" ? "dark" : "light";
 }
 
+function getStoredAutoCheckUpdates() {
+  return localStorage.getItem("codex-led-auto-check-updates") !== "false";
+}
+
 function getStoredWeeklyThreshold() {
   return normalizeWeeklyThreshold(localStorage.getItem("codex-led-weekly-threshold"));
 }
@@ -305,7 +348,8 @@ function getStoredSmartEnabled() {
 }
 
 function getStoredSmartMode() {
-  return localStorage.getItem("codex-led-smart-mode") === "manual" ? "manual" : "active";
+  const value = localStorage.getItem("codex-led-smart-mode");
+  return value === "manual" || value === "idle" ? value : "active";
 }
 
 function getStoredSmartLastChangeAt() {
@@ -341,6 +385,9 @@ function applyLabels() {
   el.languageSelect.setAttribute("aria-label", t("language"));
   el.themeSettingLabel.textContent = t("theme");
   el.themeSelect.setAttribute("aria-label", t("theme"));
+  el.autoUpdateSettingLabel.textContent = t("autoUpdate");
+  el.autoUpdateToggle.setAttribute("aria-label", t("autoUpdate"));
+  el.versionSettingLabel.textContent = t("versionUpdate");
   el.weeklyThresholdLabel.textContent = t("weeklyAlert");
   el.weeklyThresholdSelect.setAttribute("aria-label", t("weeklyAlert"));
   el.primaryTimeDisplayLabel.textContent = t("primaryTimeDisplay");
@@ -357,6 +404,8 @@ function applyLabels() {
   el.smartActiveRefreshSelect.setAttribute("aria-label", t("smartActiveRefresh"));
   el.smartIdleTimeoutLabel.textContent = t("smartIdleTimeout");
   el.smartIdleTimeoutSelect.setAttribute("aria-label", t("smartIdleTimeout"));
+  el.smartIdleRefreshLabel.textContent = t("smartIdleRefresh");
+  el.smartIdleRefreshSelect.setAttribute("aria-label", t("smartIdleRefresh"));
   el.smartStatusLabel.textContent = t("smartStatus");
   el.compactSizeLabel.textContent = t("compactSize");
   el.quotaFontSizeLabel.textContent = t("quotaFontSize");
@@ -380,9 +429,14 @@ function applyLabels() {
   el.historySecondaryLegend.textContent = t("secondaryUsed");
   el.historyPrevBtn.setAttribute("aria-label", t("previousPeriod"));
   el.historyNextBtn.setAttribute("aria-label", t("nextPeriod"));
-  const periodLabels = ["periodDay", "periodWeek", "periodMonth", "periodCycle"];
-  el.historyPeriodButtons.forEach((button, index) => {
-    button.textContent = t(periodLabels[index]);
+  const periodLabels = {
+    cycle: "periodCycle",
+    day: "periodDay",
+    week: "periodWeek",
+    month: "periodMonth"
+  };
+  el.historyPeriodButtons.forEach((button) => {
+    button.textContent = t(periodLabels[button.dataset.period]);
   });
   updateHistoryPeriodControls();
   updatePinButton(state.alwaysOnTop);
@@ -408,14 +462,36 @@ function updateSettingsControls() {
   el.smartSettingsControls.hidden = !state.smartEnabled;
   el.smartActiveRefreshSelect.value = String(state.smartActiveRefreshMinutes);
   el.smartIdleTimeoutSelect.value = String(state.smartIdleMinutes);
+  el.smartIdleRefreshSelect.value = String(state.smartIdleRefreshMinutes);
   el.smartStatusText.textContent = formatSmartStatus();
   el.smartSettingsHint.hidden = !state.smartEnabled;
   el.smartSettingsHint.textContent = formatSmartHint();
+  updateUpdateControls();
   applyCompactAppearance(state.compactAppearance);
 }
 
+function updateUpdateControls() {
+  el.autoUpdateToggle.checked = state.autoCheckUpdates;
+  el.updateStatusText.textContent = formatUpdateStatus();
+  el.checkUpdateBtn.disabled = state.updateChecking;
+  el.checkUpdateBtn.textContent = state.availableUpdate ? t("viewUpdate") : t("checkUpdate");
+  el.settingsBtn.classList.toggle("has-update", Boolean(state.availableUpdate));
+}
+
+function formatUpdateStatus() {
+  if (state.updateStatus === "checking") return t("checkingUpdate");
+  if (state.updateStatus === "available" && state.availableUpdate) {
+    return t("updateAvailable").replace("{version}", state.availableUpdate.latestVersion);
+  }
+  if (state.updateStatus === "current") {
+    return t("updateCurrent").replace("{version}", state.currentVersion || "--");
+  }
+  if (state.updateStatus === "error") return t("updateFailed");
+  return t("currentVersion").replace("{version}", state.currentVersion || "--");
+}
+
 function updateAutoRefreshOptions() {
-  for (const select of [el.autoRefreshSelect, el.regularRefreshSelect, el.smartActiveRefreshSelect]) {
+  for (const select of [el.autoRefreshSelect, el.regularRefreshSelect, el.smartActiveRefreshSelect, el.smartIdleRefreshSelect]) {
     for (const option of select.options) {
       const minutes = Number(option.value);
       option.textContent = formatRefreshMinutes(minutes);
@@ -433,12 +509,14 @@ function formatRefreshMinutes(minutes) {
 
 function formatSmartStatus() {
   if (state.smartMode === "manual") return t("smartPaused");
+  if (state.smartMode === "idle") return `${t("smartIdle")} · ${formatRefreshMinutes(state.smartIdleRefreshMinutes)}`;
   return `${t("smartActive")} · ${formatRefreshMinutes(state.smartActiveRefreshMinutes)}`;
 }
 
 function formatSmartHint() {
   return t("smartHint")
     .replace("{idle}", formatRefreshMinutes(state.smartIdleMinutes))
+    .replace("{idleRefresh}", formatRefreshMinutes(state.smartIdleRefreshMinutes))
     .replace("{interval}", formatRefreshMinutes(state.smartActiveRefreshMinutes));
 }
 
@@ -607,32 +685,36 @@ function drawHistoryChart() {
   const range = getPeriodRange(state.historyPeriod, state.historyAnchor);
   const series = buildConsumptionSeries(state.historyRecords);
   const dark = state.theme === "dark";
-  const plot = { left: 34, top: 10, right: rect.width - 10, bottom: rect.height - 23 };
+  const plot = { left: 38, top: 10, right: rect.width - 10, bottom: rect.height - 23 };
   const plotWidth = Math.max(1, plot.right - plot.left);
   const plotHeight = Math.max(1, plot.bottom - plot.top);
+  const gridColor = dark ? "rgba(148,163,184,.15)" : "rgba(71,85,105,.12)";
 
   ctx.font = '10px "Segoe UI", sans-serif';
   ctx.lineWidth = 1;
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  for (const percent of [0, 25, 50, 75, 100]) {
+  for (const percent of [0, 20, 40, 60, 80, 100]) {
     const y = plot.bottom - (percent / 100) * plotHeight;
-    ctx.strokeStyle = dark ? "rgba(148,163,184,.15)" : "rgba(71,85,105,.12)";
+    ctx.strokeStyle = gridColor;
     ctx.beginPath();
     ctx.moveTo(plot.left, y);
     ctx.lineTo(plot.right, y);
     ctx.stroke();
-    if (percent === 0 || percent === 50 || percent === 100) {
-      ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
-      ctx.fillText(`${percent}%`, plot.left - 5, y);
-    }
+    ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
+    ctx.fillText(`${percent}%`, plot.left - 5, y);
   }
 
-  ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  const axisTimes = [range.start, (range.start + range.end) / 2, range.end - 1];
+  const axisTimes = getAxisTickValues(state.historyPeriod, range);
   axisTimes.forEach((time, index) => {
-    const x = plot.left + (index / 2) * plotWidth;
+    const x = plot.left + (index / (axisTimes.length - 1)) * plotWidth;
+    ctx.strokeStyle = gridColor;
+    ctx.beginPath();
+    ctx.moveTo(x, plot.top);
+    ctx.lineTo(x, plot.bottom);
+    ctx.stroke();
+    ctx.textAlign = index === 0 ? "left" : index === axisTimes.length - 1 ? "right" : "center";
     ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
     ctx.fillText(formatAxisTime(new Date(time)), x, plot.bottom + 6);
   });
@@ -697,7 +779,7 @@ async function setEffectiveAutoRefreshMinutes(value) {
 }
 
 function setSmartMode(mode) {
-  state.smartMode = mode === "manual" ? "manual" : "active";
+  state.smartMode = mode === "manual" || mode === "idle" ? mode : "active";
   localStorage.setItem("codex-led-smart-mode", state.smartMode);
 }
 
@@ -725,11 +807,11 @@ function scheduleSmartIdleTimeout() {
   const idleMs = state.smartIdleMinutes * 60 * 1000;
   const remainingMs = Math.max(0, idleMs - (Date.now() - state.smartLastChangeAt));
   state.smartIdleTimer = setTimeout(() => {
-    void pauseSmartRefreshIfIdle();
+    void enterSmartIdleModeIfDue();
   }, remainingMs);
 }
 
-async function pauseSmartRefreshIfIdle() {
+async function enterSmartIdleModeIfDue() {
   if (!state.smartEnabled || state.smartMode !== "active") return;
 
   const idleMs = state.smartIdleMinutes * 60 * 1000;
@@ -738,7 +820,14 @@ async function pauseSmartRefreshIfIdle() {
     return;
   }
 
-  await pauseSmartRefresh();
+  await enterSmartIdleMode();
+}
+
+async function enterSmartIdleMode() {
+  clearSmartIdleTimer();
+  const minutes = state.smartIdleRefreshMinutes;
+  setSmartMode(minutes === 0 ? "manual" : "idle");
+  await setEffectiveAutoRefreshMinutes(minutes);
 }
 
 async function pauseSmartRefresh() {
@@ -754,13 +843,19 @@ async function activateSmartRefresh() {
   scheduleSmartIdleTimeout();
 }
 
-function observeSmartQuota(quota) {
+async function observeSmartQuota(quota) {
   if (!state.smartEnabled) return;
 
   const fingerprint = getQuotaUsageFingerprint(quota);
-  if (!state.smartLastFingerprint || state.smartLastFingerprint !== fingerprint) {
+  const changed = !state.smartLastFingerprint || state.smartLastFingerprint !== fingerprint;
+  if (changed) {
     setSmartLastFingerprint(fingerprint);
     setSmartLastChangeAt();
+  }
+
+  if (changed && state.smartMode === "idle") {
+    await activateSmartRefresh();
+    return;
   }
 
   if (state.smartMode === "active") scheduleSmartIdleTimeout();
@@ -847,6 +942,20 @@ function setSmartIdleMinutes(value) {
   updateSettingsControls();
 }
 
+async function setSmartIdleRefreshMinutes(value) {
+  const minutes = Number(value);
+  if (!SMART_IDLE_REFRESH_MINUTES.has(minutes)) return;
+
+  state.smartIdleRefreshMinutes = minutes;
+  localStorage.setItem("codex-led-smart-idle-refresh-minutes", String(minutes));
+  if (state.smartEnabled && state.smartMode !== "active") {
+    await enterSmartIdleMode();
+    return;
+  }
+  updateAutoRefreshOptions();
+  updateSettingsControls();
+}
+
 async function refreshQuota({ userInitiated = false } = {}) {
   if (state.loading) return;
   state.loading = true;
@@ -856,6 +965,7 @@ async function refreshQuota({ userInitiated = false } = {}) {
     setStatus("loading", t("loading"), t("reading"));
     el.compactReset.textContent = state.lang === "zh" ? "读取中" : "Loading";
     const quota = await window.codexQuota.getQuota();
+    await observeSmartQuota(quota);
     await window.codexQuota.recordHistory(quota).catch(() => null);
     renderQuota(quota);
     if (state.view === "history") await loadHistory();
@@ -878,7 +988,6 @@ async function refreshQuota({ userInitiated = false } = {}) {
 
 function renderQuota(quota) {
   state.lastQuota = quota;
-  observeSmartQuota(quota);
   const remaining = normalizePercent(quota.remainingPercent);
   const primaryRemaining = normalizePercent(quota.primary?.remainingPercent ?? quota.remainingPercent);
   setFill(remaining);
@@ -1023,6 +1132,65 @@ function setTheme(value) {
   updateSettingsControls();
 }
 
+function setAutoCheckUpdates(value) {
+  state.autoCheckUpdates = Boolean(value);
+  localStorage.setItem("codex-led-auto-check-updates", String(state.autoCheckUpdates));
+  updateUpdateControls();
+  scheduleAutomaticUpdateCheck({ soon: state.autoCheckUpdates });
+}
+
+function scheduleAutomaticUpdateCheck({ soon = false } = {}) {
+  if (state.updateCheckTimer) {
+    clearTimeout(state.updateCheckTimer);
+    state.updateCheckTimer = undefined;
+  }
+  if (!state.autoCheckUpdates) return;
+
+  const lastCheck = Number(localStorage.getItem("codex-led-last-update-check")) || 0;
+  const remaining = UPDATE_CHECK_INTERVAL_MS - (Date.now() - lastCheck);
+  const delay = soon ? 500 : Math.max(4000, remaining);
+  state.updateCheckTimer = setTimeout(async () => {
+    state.updateCheckTimer = undefined;
+    await checkForUpdates();
+    scheduleAutomaticUpdateCheck();
+  }, delay);
+}
+
+async function checkForUpdates({ manual = false } = {}) {
+  if (state.updateChecking) return;
+  state.updateChecking = true;
+  state.updateStatus = "checking";
+  localStorage.setItem("codex-led-last-update-check", String(Date.now()));
+  updateUpdateControls();
+
+  try {
+    const result = await window.codexQuota.checkForUpdates();
+    state.currentVersion = result.currentVersion || state.currentVersion;
+    state.availableUpdate = result.updateAvailable ? result : null;
+    state.updateStatus = result.updateAvailable ? "available" : "current";
+
+    const notifiedVersion = localStorage.getItem("codex-led-notified-update-version");
+    if (result.updateAvailable && state.autoCheckUpdates && notifiedVersion !== result.latestVersion) {
+      const shown = await window.codexQuota.notifyUpdate(state.lang).catch(() => false);
+      if (shown) localStorage.setItem("codex-led-notified-update-version", result.latestVersion);
+    }
+  } catch {
+    state.updateStatus = "error";
+    if (!manual) state.availableUpdate = null;
+  } finally {
+    state.updateChecking = false;
+    updateUpdateControls();
+  }
+}
+
+function handleUpdateAction() {
+  if (state.availableUpdate) {
+    window.codexQuota.openUpdatePage().catch(() => {});
+    return;
+  }
+  void checkForUpdates({ manual: true });
+}
+
 function setWeeklyAlertThreshold(value) {
   state.weeklyAlertThreshold = normalizeWeeklyThreshold(value);
   localStorage.setItem("codex-led-weekly-threshold", String(state.weeklyAlertThreshold));
@@ -1104,6 +1272,8 @@ el.settingsBackBtn.addEventListener("click", () => updateDetailView("main"));
 el.historyBackBtn.addEventListener("click", () => updateDetailView("main"));
 el.languageSelect.addEventListener("change", () => setLanguage(el.languageSelect.value));
 el.themeSelect.addEventListener("change", () => setTheme(el.themeSelect.value));
+el.autoUpdateToggle.addEventListener("change", () => setAutoCheckUpdates(el.autoUpdateToggle.checked));
+el.checkUpdateBtn.addEventListener("click", handleUpdateAction);
 el.weeklyThresholdSelect.addEventListener("change", () => setWeeklyAlertThreshold(el.weeklyThresholdSelect.value));
 el.primaryTimeDisplaySelect.addEventListener("change", () => setTimeDisplay("primary", el.primaryTimeDisplaySelect.value));
 el.secondaryTimeDisplaySelect.addEventListener("change", () => setTimeDisplay("secondary", el.secondaryTimeDisplaySelect.value));
@@ -1112,6 +1282,7 @@ el.regularRefreshSelect.addEventListener("change", () => void setRegularRefreshM
 el.smartEnabledToggle.addEventListener("change", () => void setSmartEnabled(el.smartEnabledToggle.checked));
 el.smartActiveRefreshSelect.addEventListener("change", () => void setSmartActiveRefreshMinutes(el.smartActiveRefreshSelect.value));
 el.smartIdleTimeoutSelect.addEventListener("change", () => setSmartIdleMinutes(el.smartIdleTimeoutSelect.value));
+el.smartIdleRefreshSelect.addEventListener("change", () => void setSmartIdleRefreshMinutes(el.smartIdleRefreshSelect.value));
 for (const control of [el.compactSizeRange, el.quotaFontSizeRange, el.resetFontSizeRange]) {
   control.addEventListener("input", scheduleCompactAppearanceUpdate);
 }
@@ -1151,6 +1322,7 @@ function configureAutoRefresh() {
 }
 
 (async () => {
+  state.currentVersion = await window.codexQuota.getAppVersion().catch(() => "");
   applyCompactAppearance(await window.codexQuota.getCompactAppearance());
   updateWindowMode(await window.codexQuota.getWindowMode());
   updatePinButton(await window.codexQuota.getAlwaysOnTop());
@@ -1158,6 +1330,8 @@ function configureAutoRefresh() {
   if (state.smartEnabled) {
     if (state.smartMode === "manual") {
       await setEffectiveAutoRefreshMinutes(0);
+    } else if (state.smartMode === "idle") {
+      await enterSmartIdleMode();
     } else {
       await setEffectiveAutoRefreshMinutes(state.smartActiveRefreshMinutes);
       scheduleSmartIdleTimeout();
@@ -1171,4 +1345,5 @@ function configureAutoRefresh() {
   updateDetailView("main");
   applyLabels();
   refreshQuota();
+  scheduleAutomaticUpdateCheck();
 })();
