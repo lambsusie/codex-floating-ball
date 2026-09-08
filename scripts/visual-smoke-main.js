@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-1"));
+app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-2"));
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -156,9 +156,16 @@ app.whenReady().then(async () => {
     tooltipPrimary: document.getElementById('historyTooltipPrimary').textContent,
     tooltipSecondary: document.getElementById('historyTooltipSecondary').textContent
   })`);
-  await window.webContents.executeJavaScript("document.getElementById('historyExportBtn').click()");
+  await window.webContents.executeJavaScript(`(() => {
+    hideHistoryTooltip();
+    const select = document.getElementById('historyMetricSelect');
+    select.value = 'used';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    document.getElementById('historyExportBtn').click();
+  })()`);
   await wait(100);
   const exportStatus = await window.webContents.executeJavaScript("document.getElementById('historyPointCount').textContent");
+  const historyExport = await capture(window, "history-export");
 
   const compactMetrics = await window.webContents.executeJavaScript(`(() => {
     document.body.dataset.mode = 'compact';
@@ -166,18 +173,24 @@ app.whenReady().then(async () => {
     const quota = document.getElementById('compactRemaining').getBoundingClientRect();
     const reset = document.getElementById('compactReset').getBoundingClientRect();
     const orb = document.querySelector('.compact-orb').getBoundingClientRect();
+    const surface = document.querySelector('.compact-orb-surface');
+    const surfaceBounds = surface.getBoundingClientRect();
     return {
       quotaBottom: Math.round(quota.bottom),
       resetTop: Math.round(reset.top),
       noTextOverlap: quota.bottom <= reset.top,
-      textInsideOrb: quota.top >= orb.top && reset.bottom <= orb.bottom
+      textInsideOrb: quota.top >= orb.top && reset.bottom <= orb.bottom,
+      renderWidth: surface.offsetWidth,
+      displayWidth: Math.round(surfaceBounds.width),
+      supersampleFactor: surface.offsetWidth / surfaceBounds.width,
+      transform: getComputedStyle(surface).transform
     };
   })()`);
   await window.setSize(212, 212);
   await wait(200);
   const compact = await capture(window, "compact-max");
 
-  process.stdout.write(`${JSON.stringify({ main, settings, settingsUpdate, settingsSmart, history, historyRemaining, historyTooltip, compact, startupMetrics, settingsMetrics, updateMetrics, updateDisabledMetrics, smartMetrics, historyMetrics, historyInteractionMetrics, exportStatus, compactMetrics, diagnostics })}\n`);
+  process.stdout.write(`${JSON.stringify({ main, settings, settingsUpdate, settingsSmart, history, historyRemaining, historyTooltip, historyExport, compact, startupMetrics, settingsMetrics, updateMetrics, updateDisabledMetrics, smartMetrics, historyMetrics, historyInteractionMetrics, exportStatus, compactMetrics, diagnostics })}\n`);
   window.destroy();
   app.quit();
 });

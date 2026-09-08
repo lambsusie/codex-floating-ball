@@ -1,3 +1,5 @@
+const COMPACT_RENDER_SCALE = 4;
+
 const labels = {
   zh: {
     brand: "Codex 额度",
@@ -598,10 +600,11 @@ function applyCompactAppearance(value) {
 
   const root = document.documentElement.style;
   root.setProperty("--compact-size", `${appearance.ballSize}px`);
-  root.setProperty("--compact-render-size", `${appearance.ballSize * 2}px`);
-  root.setProperty("--compact-quota-font-render", `${appearance.quotaFontSize * 2}px`);
-  root.setProperty("--compact-reset-font-render", `${appearance.resetFontSize * 2}px`);
-  root.setProperty("--compact-text-width", `${Math.max(80, appearance.ballSize - 24) * 2}px`);
+  root.setProperty("--compact-render-size", `${appearance.ballSize * COMPACT_RENDER_SCALE}px`);
+  root.setProperty("--compact-render-scale", String(1 / COMPACT_RENDER_SCALE));
+  root.setProperty("--compact-quota-font-render", `${appearance.quotaFontSize * COMPACT_RENDER_SCALE}px`);
+  root.setProperty("--compact-reset-font-render", `${appearance.resetFontSize * COMPACT_RENDER_SCALE}px`);
+  root.setProperty("--compact-text-width", `${Math.max(80, appearance.ballSize - 24) * COMPACT_RENDER_SCALE}px`);
 
   el.compactSizeRange.value = String(appearance.ballSize);
   el.quotaFontSizeRange.max = String(Math.floor(appearance.ballSize * 0.35));

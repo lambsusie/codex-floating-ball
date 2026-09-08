@@ -1,9 +1,10 @@
-# macOS v1.1.1 构建说明
+# macOS v1.1.2 构建说明
 
-该目录是 Codex Floating Ball v1.1.1 的 macOS 发布源码，支持：
+该目录是 Codex Floating Ball v1.1.2 的 macOS 发布源码，支持：
 
 - Apple Silicon：`arm64`
 - Intel Mac：`x64`
+- 不透明、统一圆角裁剪的浅色与深色完整界面
 - 5 小时与 7 天额度历史记录和 CSV 导出
 - 历史曲线可切换已用额度/剩余额度，并支持数据点悬停提示
 - 智能刷新、可调悬浮球和可选的 GitHub Release 更新检查
@@ -23,8 +24,8 @@
 生成的文件名为：
 
 ```text
-Codex-Floating-Ball-1.1.1-mac-arm64.dmg
-Codex-Floating-Ball-1.1.1-mac-x64.dmg
+Codex-Floating-Ball-1.1.2-mac-arm64.dmg
+Codex-Floating-Ball-1.1.2-mac-x64.dmg
 ```
 
 ## 在 Mac 本机构建
@@ -44,7 +45,7 @@ npm run build:mac:x64
 
 ## 升级与本地数据
 
-从 v1.0.0 或 v1.1.0 升级到 v1.1.1 不会删除历史记录。macOS 数据保存在：
+从旧版本升级到 v1.1.2 不会删除设置或历史记录。macOS 数据保存在：
 
 ```text
 ~/Library/Application Support/codex-floating-ball/quota-history.ndjson
@@ -58,4 +59,4 @@ CSV 导出只读取本机历史文件，并写入用户在保存窗口中选择�
 
 ## English
 
-This package builds unsigned Codex Floating Ball v1.1.1 DMGs for Apple Silicon (`arm64`) and Intel (`x64`). It adds CSV history export, used/remaining chart modes, and hover details for chart data points. Run the **Build macOS packages** GitHub Actions workflow, or run `npm ci && npm test && npm run build:mac` on a Mac. Each workflow artifact contains a DMG and its SHA-256 checksum.
+This package builds unsigned Codex Floating Ball v1.1.2 DMGs for Apple Silicon (`arm64`) and Intel (`x64`). The detail interface now uses an opaque surface with consistent rounded clipping in both light and dark themes. Run the **Build macOS packages** GitHub Actions workflow, or run `npm ci && npm test && npm run build:mac` on a Mac. Each workflow artifact contains a DMG and its SHA-256 checksum.
