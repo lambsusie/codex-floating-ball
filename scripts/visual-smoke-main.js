@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-2"));
+app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-3"));
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -167,6 +167,33 @@ app.whenReady().then(async () => {
   const exportStatus = await window.webContents.executeJavaScript("document.getElementById('historyPointCount').textContent");
   const historyExport = await capture(window, "history-export");
 
+  const weeklyOnlyMetrics = await window.webContents.executeJavaScript(`(() => {
+    document.body.dataset.mode = 'detail';
+    updateDetailView('main');
+    renderQuota({
+      fetchedAt: Date.now(),
+      planType: 'pro',
+      primary: null,
+      secondary: {
+        remainingPercent: 4,
+        usedPercent: 96,
+        resetsAt: Date.now() + 3 * 86400000
+      }
+    });
+    return {
+      quotaMode: document.body.dataset.quotaMode,
+      primaryText: document.getElementById('primaryText').textContent,
+      remaining: document.getElementById('remaining').textContent,
+      compactReset: document.getElementById('compactReset').textContent,
+      cycleHidden: document.querySelector('[data-period="cycle"]').hidden,
+      sideWarningHidden: document.getElementById('weeklyWarning').hidden,
+      warningActive: document.body.dataset.weeklyAlert,
+      state: document.body.dataset.state
+    };
+  })()`);
+  await wait(100);
+  const weeklyOnly = await capture(window, "weekly-only");
+
   const compactMetrics = await window.webContents.executeJavaScript(`(() => {
     document.body.dataset.mode = 'compact';
     applyCompactAppearance({ ballSize: 200, quotaFontSize: 63, resetFontSize: 24 });
@@ -190,7 +217,7 @@ app.whenReady().then(async () => {
   await wait(200);
   const compact = await capture(window, "compact-max");
 
-  process.stdout.write(`${JSON.stringify({ main, settings, settingsUpdate, settingsSmart, history, historyRemaining, historyTooltip, historyExport, compact, startupMetrics, settingsMetrics, updateMetrics, updateDisabledMetrics, smartMetrics, historyMetrics, historyInteractionMetrics, exportStatus, compactMetrics, diagnostics })}\n`);
+  process.stdout.write(`${JSON.stringify({ main, settings, settingsUpdate, settingsSmart, history, historyRemaining, historyTooltip, historyExport, weeklyOnly, compact, startupMetrics, settingsMetrics, updateMetrics, updateDisabledMetrics, smartMetrics, historyMetrics, historyInteractionMetrics, exportStatus, weeklyOnlyMetrics, compactMetrics, diagnostics })}\n`);
   window.destroy();
   app.quit();
 });

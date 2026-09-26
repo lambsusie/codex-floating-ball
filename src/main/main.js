@@ -1,10 +1,11 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage, net, Notification, screen } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage, nativeTheme, net, Notification, screen } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { getQuota, resolveCodexPath, shutdownQuotaService } = require("./quota-service");
 const { appendHistory, exportHistoryCsv, readHistoryRange } = require("./history-service");
 const { DEFAULT_COMPACT_APPEARANCE, normalizeCompactAppearance } = require("./compact-appearance");
 const { checkForUpdate, RELEASES_PAGE_URL } = require("./update-service");
+const { getThemeState, normalizeThemeSource } = require("./theme-service");
 
 const DETAIL_SIZE = { width: 520, height: 360 };
 const DEFAULT_WINDOW_MODE = "compact";
@@ -19,12 +20,15 @@ let compactAlertActive = false;
 let compactAppearance = { ...DEFAULT_COMPACT_APPEARANCE };
 let saveBoundsTimer;
 let availableUpdate;
+let themeSource = "system";
+let macGlassAvailable = true;
 
 if (process.platform === "win32") app.setAppUserModelId(APP_ID);
 
 function createWindow() {
   const initialSize = getWindowSize(currentWindowMode);
-  mainWindow = new BrowserWindow({
+  const themeState = getCurrentThemeState();
+  const windowOptions = {
     width: initialSize.width,
     height: initialSize.height,
     minWidth: initialSize.width,
@@ -44,8 +48,14 @@ function createWindow() {
       nodeIntegration: false,
       backgroundThrottling: false
     }
-  });
+  };
+  if (themeState.glassEnabled) {
+    windowOptions.vibrancy = "under-window";
+    windowOptions.visualEffectState = "active";
+  }
+  mainWindow = new BrowserWindow(windowOptions);
   mainWindow.setHasShadow(false);
+  updateMacWindowEffects(themeState);
 
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   mainWindow.once("ready-to-show", () => {
@@ -141,6 +151,40 @@ async function exportHistory(language) {
 function writeSettings(settings) {
   fs.mkdirSync(app.getPath("userData"), { recursive: true });
   fs.writeFileSync(getSettingsPath(), JSON.stringify(settings, null, 2), "utf8");
+}
+
+function getCurrentThemeState() {
+  const state = getThemeState(nativeTheme, process.platform, themeSource);
+  return state.glassEnabled && !macGlassAvailable ? { ...state, glassEnabled: false } : state;
+}
+
+function broadcastThemeState() {
+  const state = getCurrentThemeState();
+  updateMacWindowEffects(state);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("theme:changed", state);
+  }
+  return state;
+}
+
+function setThemeSource(value) {
+  themeSource = normalizeThemeSource(value);
+  nativeTheme.themeSource = themeSource;
+  const settings = readSettings();
+  settings.themeSource = themeSource;
+  writeSettings(settings);
+  return broadcastThemeState();
+}
+
+function updateMacWindowEffects(state = getCurrentThemeState()) {
+  if (process.platform !== "darwin" || !mainWindow || mainWindow.isDestroyed()) return;
+  try {
+    mainWindow.setVibrancy(state.glassEnabled ? "under-window" : null);
+    mainWindow.setBackgroundColor("#00000000");
+  } catch {
+    macGlassAvailable = false;
+    mainWindow.webContents.send("theme:changed", getCurrentThemeState());
+  }
 }
 
 function getAutoRefreshMinutes() {
@@ -278,9 +322,13 @@ function isBoundsVisible(bounds) {
 }
 
 function createTray() {
-  const icon = nativeImage.createFromDataURL(
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAK0lEQVR42mNk+M9Qz0AEYBxVSFUBCzAyMjL8Z2BgYJjFqIGjBo4aOAIAgV4EfpO0k7EAAAAASUVORK5CYII="
-  );
+  const assetName = process.platform === "darwin"
+    ? "trayTemplate.png"
+    : (process.platform === "win32" ? "icon.ico" : "tray-icon.png");
+  let icon = nativeImage.createFromPath(path.join(__dirname, "../../assets", assetName));
+  if (icon.isEmpty()) {
+    icon = nativeImage.createFromPath(path.join(__dirname, "../../assets/tray-icon.png"));
+  }
   if (process.platform === "darwin") icon.setTemplateImage(true);
   tray = new Tray(icon);
   tray.setToolTip("Codex Quota Widget");
@@ -346,9 +394,13 @@ function showUpdateNotification(language) {
 
 app.whenReady().then(() => {
   if (process.platform === "darwin") app.dock?.hide();
-  compactAppearance = normalizeCompactAppearance(readSettings().compactAppearance);
+  const settings = readSettings();
+  compactAppearance = normalizeCompactAppearance(settings.compactAppearance);
+  themeSource = normalizeThemeSource(settings.themeSource);
+  nativeTheme.themeSource = themeSource;
   createWindow();
   createTray();
+  nativeTheme.on("updated", broadcastThemeState);
 
   ipcMain.handle("quota:get", async () => getQuota());
   ipcMain.handle("window:minimize", () => setWindowMode("compact"));
@@ -363,6 +415,8 @@ app.whenReady().then(() => {
   ipcMain.handle("settings:autoRefresh:set", (_event, minutes) => setAutoRefreshMinutes(minutes));
   ipcMain.handle("settings:compactAppearance:get", () => getCompactAppearance());
   ipcMain.handle("settings:compactAppearance:set", (_event, value) => setCompactAppearance(value));
+  ipcMain.handle("theme:get", () => getCurrentThemeState());
+  ipcMain.handle("theme:set", (_event, value) => setThemeSource(value));
   ipcMain.handle("history:record", (_event, quota) => appendHistory(getHistoryPath(), quota));
   ipcMain.handle("history:get", (_event, range) => readHistoryRange(getHistoryPath(), range?.start, range?.end));
   ipcMain.handle("history:export", (_event, language) => exportHistory(language));

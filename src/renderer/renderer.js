@@ -19,6 +19,7 @@ const labels = {
     back: "返回",
     language: "语言",
     theme: "主题",
+    themeSystem: "跟随系统",
     themeLight: "浅色",
     themeDark: "深色",
     autoUpdate: "自动检查更新",
@@ -45,6 +46,7 @@ const labels = {
     reading: "正在读取 Codex 额度...",
     updated: "额度已更新",
     unavailable: "暂无数据",
+    unlimited: "暂无限制",
     reset: "重置",
     used: "已用",
     left: "剩余",
@@ -108,6 +110,7 @@ const labels = {
     back: "Back",
     language: "Language",
     theme: "Theme",
+    themeSystem: "Follow system",
     themeLight: "Light",
     themeDark: "Dark",
     autoUpdate: "Automatically check for updates",
@@ -134,6 +137,7 @@ const labels = {
     reading: "Reading Codex quota...",
     updated: "Quota updated",
     unavailable: "No data",
+    unlimited: "No current limit",
     reset: "reset",
     used: "used",
     left: "left",
@@ -198,7 +202,10 @@ const { buildQuotaSeries, getAxisTickValues, getPeriodRange, shiftPeriod } = win
 
 const state = {
   lang: getStoredLanguage(),
-  theme: getStoredTheme(),
+  themeSource: getStoredThemeSource(),
+  theme: "light",
+  platform: "win32",
+  glassEnabled: false,
   autoCheckUpdates: getStoredAutoCheckUpdates(),
   currentVersion: "",
   updateStatus: "idle",
@@ -350,9 +357,9 @@ function getStoredLanguage() {
   return value === "en" ? "en" : "zh";
 }
 
-function getStoredTheme() {
+function getStoredThemeSource() {
   const value = localStorage.getItem("codex-led-theme");
-  return value === "dark" ? "dark" : "light";
+  return value === "light" || value === "dark" ? value : "system";
 }
 
 function getStoredAutoCheckUpdates() {
@@ -393,6 +400,7 @@ function getStoredSmartLastChangeAt() {
 }
 
 function normalizeWeeklyThreshold(value) {
+  if (value === null || value === undefined || value === "") return DEFAULT_WEEKLY_ALERT_THRESHOLD;
   const number = Number(value);
   if (!Number.isFinite(number)) return DEFAULT_WEEKLY_ALERT_THRESHOLD;
   return Math.max(1, Math.min(99, Math.round(number)));
@@ -481,9 +489,10 @@ function applyLabels() {
 
 function updateSettingsControls() {
   el.languageSelect.value = state.lang;
-  el.themeSelect.value = state.theme;
-  el.themeSelect.options[0].textContent = t("themeLight");
-  el.themeSelect.options[1].textContent = t("themeDark");
+  el.themeSelect.value = state.themeSource;
+  el.themeSelect.querySelector('[value="system"]').textContent = t("themeSystem");
+  el.themeSelect.querySelector('[value="light"]').textContent = t("themeLight");
+  el.themeSelect.querySelector('[value="dark"]').textContent = t("themeDark");
   el.weeklyThresholdSelect.value = String(state.weeklyAlertThreshold);
   for (const select of [el.primaryTimeDisplaySelect, el.secondaryTimeDisplaySelect, el.compactTimeDisplaySelect]) {
     select.options[0].textContent = t("timeDisplayDuration");
@@ -587,7 +596,20 @@ function updateDetailView(view) {
 
 function applyTheme() {
   el.body.dataset.theme = state.theme;
+  el.body.dataset.themeSource = state.themeSource;
+  el.body.dataset.platform = state.platform;
+  el.body.dataset.glass = state.glassEnabled ? "true" : "false";
   if (state.view === "history") drawHistoryChart();
+}
+
+function applyThemeState(value) {
+  if (!value || typeof value !== "object") return;
+  state.themeSource = value.source === "light" || value.source === "dark" ? value.source : "system";
+  state.theme = value.resolvedTheme === "dark" ? "dark" : "light";
+  state.platform = typeof value.platform === "string" ? value.platform : state.platform;
+  state.glassEnabled = Boolean(value.glassEnabled);
+  applyTheme();
+  updateSettingsControls();
 }
 
 function applyCompactAppearance(value) {
@@ -641,7 +663,15 @@ function updateHistoryMetricControls() {
   el.historyMetricSelect.options[1].textContent = t("historyMetricRemaining");
   el.historyPrimaryLegend.textContent = t(remaining ? "primaryRemaining" : "primaryUsed");
   el.historySecondaryLegend.textContent = t(remaining ? "secondaryRemaining" : "secondaryUsed");
+  updateHistorySeriesVisibility();
   el.historyChart.setAttribute("aria-label", `${t("historyTitle")} · ${t(remaining ? "historyMetricRemaining" : "historyMetricUsed")}`);
+}
+
+function updateHistorySeriesVisibility() {
+  const hasPrimary = state.historyRecords.some((record) => record.primaryRemaining !== null);
+  const hasSecondary = state.historyRecords.some((record) => record.secondaryRemaining !== null);
+  document.getElementById("historyPrimaryLegendItem").hidden = !hasPrimary;
+  document.getElementById("historySecondaryLegendItem").hidden = !hasSecondary;
 }
 
 function setHistoryMetric(value) {
@@ -652,6 +682,7 @@ function setHistoryMetric(value) {
 }
 
 function setHistoryPeriod(period) {
+  if (period === "cycle" && !state.lastQuota?.primary) return;
   state.historyPeriod = period;
   if (period === "cycle") {
     const resetAt = state.lastQuota?.primary?.resetsAt;
@@ -701,6 +732,9 @@ function showHistoryFooterMessage(message, resetAfter = 0) {
 function updateHistoryPeriodControls() {
   const range = getPeriodRange(state.historyPeriod, state.historyAnchor);
   el.historyPeriodButtons.forEach((button) => {
+    const unavailable = button.dataset.period === "cycle" && !state.lastQuota?.primary;
+    button.hidden = unavailable;
+    button.disabled = unavailable;
     const active = button.dataset.period === state.historyPeriod;
     button.classList.toggle("active", active);
     button.setAttribute("aria-selected", String(active));
@@ -771,6 +805,7 @@ function drawHistoryChart() {
 
   const range = getPeriodRange(state.historyPeriod, state.historyAnchor);
   const series = buildQuotaSeries(state.historyRecords, state.historyMetric);
+  updateHistorySeriesVisibility();
   const dark = state.theme === "dark";
   const plot = { left: 38, top: 10, right: rect.width - 10, bottom: rect.height - 23 };
   const plotWidth = Math.max(1, plot.right - plot.left);
@@ -816,7 +851,7 @@ function drawHistoryChart() {
     primaryY: point.primaryValue === null ? null : yFor(point.primaryValue),
     secondaryY: point.secondaryValue === null ? null : yFor(point.secondaryValue)
   }));
-  el.historyEmpty.hidden = series.length > 0;
+  el.historyEmpty.hidden = series.some((point) => point.primaryValue !== null || point.secondaryValue !== null);
 }
 
 function drawSeries(ctx, points, key, color, range, plot) {
@@ -892,6 +927,8 @@ function showHistoryTooltip(point, anchorY) {
   });
   el.historyTooltipPrimary.textContent = `${el.historyPrimaryLegend.textContent}: ${formatChartPercent(point.primaryValue)}`;
   el.historyTooltipSecondary.textContent = `${el.historySecondaryLegend.textContent}: ${formatChartPercent(point.secondaryValue)}`;
+  el.historyTooltipPrimary.hidden = point.primaryValue === null;
+  el.historyTooltipSecondary.hidden = point.secondaryValue === null;
   el.historyTooltip.hidden = false;
 
   const shell = el.historyChart.parentElement.getBoundingClientRect();
@@ -1144,34 +1181,43 @@ async function refreshQuota({ userInitiated = false } = {}) {
 
 function renderQuota(quota) {
   state.lastQuota = quota;
-  const remaining = normalizePercent(quota.remainingPercent);
-  const primaryRemaining = normalizePercent(quota.primary?.remainingPercent ?? quota.remainingPercent);
+  const compactWindow = quota.primary || quota.secondary;
+  const weeklyOnly = !quota.primary && Boolean(quota.secondary);
+  const remaining = normalizePercent(compactWindow?.remainingPercent);
+  el.body.dataset.quotaMode = weeklyOnly ? "weekly-only" : (quota.primary ? "dual" : "unavailable");
+  if (weeklyOnly && state.historyPeriod === "cycle") {
+    state.historyPeriod = "day";
+    state.historyAnchor = new Date();
+  }
   setFill(remaining);
-  setCompactFill(primaryRemaining);
+  setCompactFill(remaining);
   el.remaining.textContent = `${remaining}%`;
-  el.compactRemaining.textContent = `${primaryRemaining}%`;
-  el.compactReset.textContent = formatCompactReset(quota.primary);
-  el.primaryText.textContent = formatWindow(quota.primary, "primary");
+  el.compactRemaining.textContent = `${remaining}%`;
+  el.compactReset.textContent = formatCompactReset(compactWindow, weeklyOnly ? "secondary" : "primary");
+  el.primaryText.textContent = quota.primary ? formatWindow(quota.primary, "primary") : t("unlimited");
   el.secondaryText.textContent = formatWindow(quota.secondary, "secondary");
   el.planText.textContent = formatPlan(quota.planType);
-  updateWeeklyWarning(quota.secondary);
+  updateWeeklyWarning(quota.secondary, weeklyOnly);
 
-  const tone = primaryRemaining <= 0 ? "empty" : primaryRemaining < 10 ? "warning" : "ok";
+  const weeklyAlert = weeklyOnly && remaining < state.weeklyAlertThreshold;
+  const tone = remaining <= 0 ? "empty" : (remaining < 10 || weeklyAlert) ? "warning" : "ok";
   setStatus(tone, t("ready"), `${t("updated")} ${formatClock(quota.fetchedAt)}`);
+  updateHistoryPeriodControls();
 }
 
-function updateWeeklyWarning(quotaWindow) {
+function updateWeeklyWarning(quotaWindow, inline = false) {
   const remaining = quotaWindow ? normalizePercent(quotaWindow.remainingPercent) : null;
   const active = remaining !== null && remaining < state.weeklyAlertThreshold;
+  const sideAlertActive = active && !inline;
 
-  el.weeklyWarning.hidden = !active;
+  el.weeklyWarning.hidden = !sideAlertActive;
   el.body.dataset.weeklyAlert = active ? "true" : "false";
   el.weeklyRemaining.textContent = active ? `${remaining}%` : "--%";
 
-  if (state.weeklyAlertActive === active) return;
-  state.weeklyAlertActive = active;
-  window.codexQuota.setCompactAlert(active).catch(() => {
-    state.weeklyAlertActive = !active;
+  if (state.weeklyAlertActive === sideAlertActive) return;
+  state.weeklyAlertActive = sideAlertActive;
+  window.codexQuota.setCompactAlert(sideAlertActive).catch(() => {
+    state.weeklyAlertActive = !sideAlertActive;
   });
 }
 
@@ -1207,12 +1253,14 @@ function formatWindow(window, kind) {
   return `${remaining}% ${t("left")} / ${used}% ${t("used")} · ${resetLabel} ${reset}`;
 }
 
-function formatCompactReset(window) {
-  const reset = formatResetDisplay(window?.resetsAt, state.compactTimeDisplay, false);
+function formatCompactReset(window, kind = "primary") {
+  const weekly = kind === "secondary";
+  const prefix = weekly ? "7d" : "5h";
+  const reset = formatResetDisplay(window?.resetsAt, state.compactTimeDisplay, weekly);
   if (state.compactTimeDisplay === "point") {
-    return state.lang === "zh" ? `5h 重置 ${reset}` : `5h reset ${reset}`;
+    return state.lang === "zh" ? `${prefix} 重置 ${reset}` : `${prefix} reset ${reset}`;
   }
-  return state.lang === "zh" ? `5h 剩余 ${reset}` : `5h left ${reset}`;
+  return state.lang === "zh" ? `${prefix} 剩余 ${reset}` : `${prefix} left ${reset}`;
 }
 
 function formatResetDisplay(value, mode, useDays) {
@@ -1281,11 +1329,12 @@ function setLanguage(value) {
   }
 }
 
-function setTheme(value) {
-  state.theme = value === "dark" ? "dark" : "light";
-  localStorage.setItem("codex-led-theme", state.theme);
-  applyTheme();
-  updateSettingsControls();
+async function setTheme(value) {
+  const source = value === "light" || value === "dark" ? value : "system";
+  state.themeSource = source;
+  localStorage.setItem("codex-led-theme", source);
+  const themeState = await window.codexQuota.setTheme(source).catch(() => null);
+  if (themeState) applyThemeState(themeState);
 }
 
 function setAutoCheckUpdates(value) {
@@ -1351,7 +1400,7 @@ function setWeeklyAlertThreshold(value) {
   state.weeklyAlertThreshold = normalizeWeeklyThreshold(value);
   localStorage.setItem("codex-led-weekly-threshold", String(state.weeklyAlertThreshold));
   updateSettingsControls();
-  if (state.lastQuota) updateWeeklyWarning(state.lastQuota.secondary);
+  if (state.lastQuota) updateWeeklyWarning(state.lastQuota.secondary, !state.lastQuota.primary);
 }
 
 function beginCompactDrag(event) {
@@ -1431,7 +1480,7 @@ el.historyMetricSelect.addEventListener("change", () => setHistoryMetric(el.hist
 el.historyChart.addEventListener("mousemove", handleHistoryChartPointerMove);
 el.historyChart.addEventListener("mouseleave", hideHistoryTooltip);
 el.languageSelect.addEventListener("change", () => setLanguage(el.languageSelect.value));
-el.themeSelect.addEventListener("change", () => setTheme(el.themeSelect.value));
+el.themeSelect.addEventListener("change", () => void setTheme(el.themeSelect.value));
 el.autoUpdateToggle.addEventListener("change", () => setAutoCheckUpdates(el.autoUpdateToggle.checked));
 el.checkUpdateBtn.addEventListener("click", handleUpdateAction);
 el.weeklyThresholdSelect.addEventListener("change", () => setWeeklyAlertThreshold(el.weeklyThresholdSelect.value));
@@ -1466,6 +1515,7 @@ el.autoRefreshSelect.addEventListener("change", () => {
 window.codexQuota.onRefresh(() => refreshQuota({ userInitiated: true }));
 window.codexQuota.onAlwaysOnTopChanged(updatePinButton);
 window.codexQuota.onWindowModeChanged(updateWindowMode);
+window.codexQuota.onThemeChanged(applyThemeState);
 window.addEventListener("resize", () => {
   if (state.view === "history") drawHistoryChart();
 });
@@ -1483,6 +1533,8 @@ function configureAutoRefresh() {
 
 (async () => {
   state.currentVersion = await window.codexQuota.getAppVersion().catch(() => "");
+  const initialThemeState = await window.codexQuota.setTheme(state.themeSource).catch(() => window.codexQuota.getTheme());
+  applyThemeState(initialThemeState);
   applyCompactAppearance(await window.codexQuota.getCompactAppearance());
   updateWindowMode(await window.codexQuota.getWindowMode());
   updatePinButton(await window.codexQuota.getAlwaysOnTop());
@@ -1501,7 +1553,6 @@ function configureAutoRefresh() {
     localStorage.setItem("codex-led-regular-refresh-minutes", String(state.regularRefreshMinutes));
     configureAutoRefresh();
   }
-  applyTheme();
   updateDetailView("main");
   applyLabels();
   refreshQuota();

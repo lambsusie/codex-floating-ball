@@ -29,6 +29,17 @@ test("creates a compact history record for both quota windows", () => {
   );
 });
 
+test("does not copy weekly quota into the five-hour history series", () => {
+  const record = createHistoryRecord({
+    fetchedAt: "2026-08-27T08:00:00.000Z",
+    primary: null,
+    secondary: { remainingPercent: 64 },
+    remainingPercent: 64
+  });
+  assert.equal(record.primaryRemaining, null);
+  assert.equal(record.secondaryRemaining, 64);
+});
+
 test("appends and queries history while ignoring malformed lines", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "codex-history-"));
   const file = path.join(dir, "history.ndjson");

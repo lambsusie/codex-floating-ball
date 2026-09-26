@@ -22,6 +22,16 @@ test("quota fingerprint changes when remaining quota changes", () => {
   assert.notEqual(getQuotaUsageFingerprint(before), getQuotaUsageFingerprint(after));
 });
 
+test("weekly-only quota keeps a missing five-hour window distinct", () => {
+  const fingerprint = JSON.parse(getQuotaUsageFingerprint({
+    primary: null,
+    secondary: { remainingPercent: 68 },
+    remainingPercent: 68
+  }));
+  assert.equal(fingerprint.primaryRemaining, null);
+  assert.equal(fingerprint.secondaryRemaining, 68);
+});
+
 test("main selector displays manual while smart refresh is paused", () => {
   assert.equal(
     getDisplayedRefreshMinutes({

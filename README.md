@@ -46,6 +46,12 @@ Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工
 
 ### 项目亮点
 
+#### v1.1.3：系统主题、液态玻璃与仅周额度模式
+
+v1.1.3 新增 **跟随系统** 主题选项，Windows 与 macOS 的浅色/深色外观会随系统设置实时切换，无需重启。macOS 完整界面同时加入原生动态材质与液态玻璃效果；开启“降低透明度”或运行环境不支持时，会自动回退到清晰的不透明界面。Windows 托盘和应用程序也换用清晰的多尺寸 Codex Floating Ball 图标，在浅色与深色任务栏中都更容易辨认。
+
+本版本还会根据实际可用的额度窗口调整界面。对于没有 5 小时限额的 Pro 账户或官方临时取消该限制的情况，完整面板显示“暂无限制”，悬浮球自动切换到周额度及其重置时间；周额度历史、智能刷新和周额度报警仍然有效。5 小时限制重新出现后，应用会自动恢复双额度显示。与此同时，周额度报警首次使用时的默认阈值也已修正为预期的 `5%`。
+
 #### v1.1.1：历史图表交互与 CSV 导出
 
 v1.1.1 进一步完善额度历史页面。图表现在可以在 **消耗额度** 与 **剩余额度** 之间自由切换，两种模式都使用统一的 `0–100%` 纵轴，并会记住最后一次选择。鼠标移到采样点附近时，悬停提示会显示具体采样时间以及 5 小时和 7 天额度的精确数值，并自动调整位置以避免超出图表边界。
@@ -161,8 +167,10 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 - 双击悬浮球立即刷新额度。
 - 可直接拖动悬浮球到桌面任意位置，并自动记住位置。
 - 完整面板失去焦点后自动返回悬浮球状态。
-- 支持 5 小时和 7 天 / 周额度信息显示。
+- 支持 5 小时和 7 天 / 周额度信息显示；没有 5 小时限额时，悬浮球自动显示周额度及其重置时间。
+- 自动识别仅有周额度的账户或临时无 5 小时限制的情况；完整面板显示“暂无限制”，限制恢复后自动切回双额度模式。
 - 自动记录每次成功刷新的额度快照，并按日、周、月或 5 小时周期显示历史曲线。
+- 仅周额度模式会继续记录周额度曲线，并保持智能刷新和周额度报警有效，不会把周额度误写入 5 小时历史曲线。
 - 支持回溯更早的历史周期；历史记录仅保存在本机应用数据目录。
 - 历史图表可切换显示消耗额度或剩余额度，并记住最后一次选择；两种模式均使用统一的 `0–100%` 刻度。
 - 鼠标悬停在历史采样点附近时，可查看采样时间以及 5 小时和 7 天额度的精确数值。
@@ -176,8 +184,9 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 - 可设置周额度预警阈值。
 - 周额度低于设定阈值时，可通过额外告警提示提醒用户。
 - 支持中文 / English。
-- 支持浅色 / 深色主题。
-- 使用托盘图标，不会在任务栏长期占用普通窗口位置。
+- 支持浅色、深色或跟随系统主题，并实时响应 Windows 与 macOS 的系统外观变化。
+- macOS 完整界面使用原生动态材质与液态玻璃效果；开启“降低透明度”或环境不支持时自动回退到不透明界面。
+- Windows 使用清晰的多尺寸托盘和应用程序图标，不会在任务栏长期占用普通窗口位置。
 - 悬浮球采用高质量圆形渲染，在高分辨率和桌面缩放环境下保持更平滑的边缘效果。
 - Windows 与 macOS 均提供对应构建。
 
@@ -307,6 +316,12 @@ The project follows a local-first approach:
 
 ### Highlights
 
+#### v1.1.3: system themes, liquid glass, and weekly-only quota mode
+
+Version 1.1.3 adds a **Follow system** theme option, allowing the Windows and macOS interfaces to switch between light and dark appearance immediately without restarting. The macOS detail panel now uses native dynamic material with a liquid-glass treatment and automatically falls back to a clear opaque surface when Reduce Transparency is enabled or the environment does not support the effect. Windows also receives a recognizable multi-size Codex Floating Ball icon for the tray and executable.
+
+The app now adapts to the quota windows that are actually available. For Pro accounts or temporary periods without an official 5-hour limit, the detail panel reports no current limit while the floating ball switches to weekly quota and reset information. Weekly history, Smart Refresh, and weekly alerts remain active, and the dual-window display returns automatically if the 5-hour limit reappears. This release also fixes the initial weekly-alert threshold so it uses the documented `5%` default.
+
 #### v1.1.1: interactive history charts and CSV export
 
 Version 1.1.1 expands the history view with a selector for **quota used** or **quota remaining**. Both modes share a consistent `0–100%` vertical scale, and the latest selection is remembered. Hovering near a recorded point shows its timestamp and the exact 5-hour and 7-day values; the tooltip repositions itself to stay inside the chart.
@@ -420,8 +435,10 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 - Double-click the ball to refresh immediately.
 - Drag the floating ball anywhere on the desktop; its position is remembered.
 - The detailed panel automatically returns to compact mode when it loses focus.
-- Support for 5-hour and 7-day / weekly quota information when available.
+- Support for 5-hour and 7-day / weekly quota information, with automatic weekly-quota display when no 5-hour limit is available.
+- Capability-based detection for weekly-only accounts and temporary no-5-hour-limit periods; the detail panel reports no current limit and returns to dual-window mode automatically when the limit reappears.
 - Local quota snapshots after every successful refresh, with day, week, month, and 5-hour-cycle history charts.
+- Weekly-only mode continues recording weekly history and keeps Smart Refresh and weekly alerts active without copying weekly values into the 5-hour history series.
 - Navigation to earlier history periods; quota history remains in the local application-data directory.
 - Switch history charts between quota used and quota remaining on a consistent `0–100%` scale; the latest selection is remembered.
 - Hover near a history point to see its timestamp and the exact 5-hour and 7-day quota values.
@@ -435,8 +452,9 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 - Adjustable weekly-quota alert threshold.
 - Additional warning notification when weekly quota falls below the configured threshold.
 - Chinese and English interface.
-- Light and dark themes.
-- Tray icon support without keeping a normal application window permanently in the taskbar.
+- Light, dark, and live system-following themes on Windows and macOS.
+- Native macOS dynamic material with a liquid-glass treatment and an automatic opaque fallback for Reduce Transparency or unsupported environments.
+- A visible multi-size Windows tray and executable icon without keeping a normal application window permanently in the taskbar.
 - Smooth floating-ball rendering designed for high-resolution and scaled desktop environments.
 - Windows and macOS builds.
 

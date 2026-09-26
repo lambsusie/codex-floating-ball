@@ -98,6 +98,8 @@ function normalizeSnapshot(snapshot) {
     credits: snapshot.credits || null,
     primary,
     secondary,
+    hasFiveHourLimit: Boolean(primary),
+    quotaMode: primary ? "dual" : (secondary ? "weekly-only" : "unavailable"),
     remainingPercent: activeWindow ? activeWindow.remainingPercent : null,
     usedPercent: activeWindow ? activeWindow.usedPercent : null,
     resetsAt: activeWindow ? activeWindow.resetsAt : null,
@@ -106,8 +108,13 @@ function normalizeSnapshot(snapshot) {
 }
 
 function normalizeWindow(window) {
-  if (!window) return null;
-  const usedPercent = clampPercent(Number(window.usedPercent || 0));
+  if (!window || typeof window !== "object") return null;
+  const rawUsed = hasValue(window.usedPercent) ? Number(window.usedPercent) : Number.NaN;
+  const rawRemaining = hasValue(window.remainingPercent) ? Number(window.remainingPercent) : Number.NaN;
+  const usedPercent = Number.isFinite(rawUsed)
+    ? clampPercent(rawUsed)
+    : (Number.isFinite(rawRemaining) ? clampPercent(100 - rawRemaining) : null);
+  if (usedPercent === null) return null;
   return {
     usedPercent,
     remainingPercent: clampPercent(100 - usedPercent),
@@ -130,6 +137,10 @@ async function requestRateLimits() {
     client.close();
     throw error;
   }
+}
+
+function hasValue(value) {
+  return value !== null && value !== undefined && value !== "";
 }
 
 function getAppServerClient() {

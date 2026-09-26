@@ -7,7 +7,7 @@
     <title>Codex LED Widget</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-state="loading" data-mode="compact" data-view="main" data-theme="light">
+  <body data-state="loading" data-mode="compact" data-view="main" data-theme="light" data-theme-source="system" data-platform="win32" data-glass="false" data-quota-mode="dual">
     <main id="widget" class="widget">
       <section class="compact-widget" aria-label="Codex 5小时额度">
         <div id="weeklyWarning" class="weekly-warning" hidden>
@@ -149,6 +149,7 @@
             <label class="settings-row">
               <span id="themeSettingLabel">主题</span>
               <select id="themeSelect" aria-label="主题">
+                <option value="system">跟随系统</option>
                 <option value="light">浅色</option>
                 <option value="dark">深色</option>
               </select>
@@ -321,8 +322,8 @@
             </div>
           </div>
           <div class="history-legend">
-            <span><i class="legend-primary"></i><span id="historyPrimaryLegend">5小时已用</span></span>
-            <span><i class="legend-secondary"></i><span id="historySecondaryLegend">7天已用</span></span>
+            <span id="historyPrimaryLegendItem"><i class="legend-primary"></i><span id="historyPrimaryLegend">5小时已用</span></span>
+            <span id="historySecondaryLegendItem"><i class="legend-secondary"></i><span id="historySecondaryLegend">7天已用</span></span>
             <span id="historyPointCount">0 个记录点</span>
           </div>
         </section>

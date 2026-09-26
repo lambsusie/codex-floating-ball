@@ -52,10 +52,12 @@ contextBridge.exposeInMainWorld("codexQuota", {
   setAutoRefreshMinutes: async (minutes) => Number(minutes),
   getCompactAppearance: async () => normalizeCompactAppearance(),
   setCompactAppearance: async (value) => normalizeCompactAppearance(value),
+  getTheme: async () => ({ source: "system", resolvedTheme: "light", platform: "win32", glassEnabled: false }),
+  setTheme: async (source) => ({ source, resolvedTheme: source === "dark" ? "dark" : "light", platform: "win32", glassEnabled: false }),
   recordHistory: async () => null,
   getHistory: async (range) => getHistory(range),
   exportHistory: async () => ({ canceled: false, recordCount: 42, filePath: "C:\\Temp\\quota.csv" }),
-  getAppVersion: async () => "1.1.2",
+  getAppVersion: async () => "1.1.3",
   checkForUpdates: async () => ({
     currentVersion: "1.1.2",
     latestVersion: "1.2.0",
@@ -67,5 +69,6 @@ contextBridge.exposeInMainWorld("codexQuota", {
   openCodex: async () => {},
   onRefresh: () => {},
   onAlwaysOnTopChanged: () => {},
-  onWindowModeChanged: () => {}
+  onWindowModeChanged: () => {},
+  onThemeChanged: () => {}
 });
