@@ -8,7 +8,7 @@ function createHistoryRecord(quota, now = Date.now()) {
   const timestamp = parseTimestamp(quota?.fetchedAt) ?? now;
   return {
     timestamp,
-    primaryRemaining: normalizeOptionalPercent(quota?.primary?.remainingPercent ?? quota?.remainingPercent),
+    primaryRemaining: normalizeOptionalPercent(quota?.primary?.remainingPercent),
     secondaryRemaining: normalizeOptionalPercent(quota?.secondary?.remainingPercent),
     primaryResetsAt: parseTimestamp(quota?.primary?.resetsAt),
     secondaryResetsAt: parseTimestamp(quota?.secondary?.resetsAt)

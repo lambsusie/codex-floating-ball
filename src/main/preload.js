@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld("codexQuota", {
   setAutoRefreshMinutes: (minutes) => ipcRenderer.invoke("settings:autoRefresh:set", minutes),
   getCompactAppearance: () => ipcRenderer.invoke("settings:compactAppearance:get"),
   setCompactAppearance: (value) => ipcRenderer.invoke("settings:compactAppearance:set", value),
+  getTheme: () => ipcRenderer.invoke("theme:get"),
+  setTheme: (value) => ipcRenderer.invoke("theme:set", value),
   recordHistory: (quota) => ipcRenderer.invoke("history:record", quota),
   getHistory: (range) => ipcRenderer.invoke("history:get", range),
   exportHistory: (language) => ipcRenderer.invoke("history:export", language),
@@ -30,5 +32,8 @@ contextBridge.exposeInMainWorld("codexQuota", {
   },
   onWindowModeChanged: (callback) => {
     ipcRenderer.on("window:modeChanged", (_event, mode) => callback(mode));
+  },
+  onThemeChanged: (callback) => {
+    ipcRenderer.on("theme:changed", (_event, state) => callback(state));
   }
 });

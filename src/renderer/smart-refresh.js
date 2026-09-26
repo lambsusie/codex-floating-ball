@@ -1,16 +1,15 @@
 (function exposeSmartRefreshUtils(globalObject) {
-  function normalizePercent(value) {
+  function normalizeOptionalPercent(value) {
+    if (value === null || value === undefined || value === "") return null;
     const number = Number(value);
-    if (!Number.isFinite(number)) return 0;
+    if (!Number.isFinite(number)) return null;
     return Math.max(0, Math.min(100, Math.round(number)));
   }
 
   function getQuotaUsageFingerprint(quota) {
-    const primary = quota.primary || {};
-    const secondary = quota.secondary || {};
     return JSON.stringify({
-      primaryRemaining: normalizePercent(primary.remainingPercent ?? quota.remainingPercent),
-      secondaryRemaining: normalizePercent(secondary.remainingPercent)
+      primaryRemaining: normalizeOptionalPercent(quota?.primary?.remainingPercent),
+      secondaryRemaining: normalizeOptionalPercent(quota?.secondary?.remainingPercent)
     });
   }
 
