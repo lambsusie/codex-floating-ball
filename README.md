@@ -46,6 +46,19 @@ Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工
 
 ### 项目亮点
 
+#### v1.2.0：本机 tokens 报告与历史曲线自由导航
+
+v1.2.0 新增本机 tokens 的 **日、周、月消耗报告**，可选择历史日期，查看总量、输入、缓存输入、输出和推理输出。后台每天在北京时间 `23:59:59` 开始结算，跨午夜补读最后一秒；错过结算后，会在下次启动或唤醒时自动补算。报告仅在主动打开时显示，后台统计独立于额度自动刷新。
+
+历史曲线支持在绘图区内滚轮缩放时间轴，以及按住鼠标左键直接抓住曲线拖动。无需先放大，曲线会跟随鼠标同方向、同距离移动，跨日期时自动加载前后记录；纵轴保持 `0–100%`，刷新保留视图，并可一键重置。
+
+托盘改用“规整缺口环 + 中心球”图标，Windows 按正常、告警、错误和暂无数据切换颜色，macOS 使用单色模板。同时完善普通关闭时收起悬浮球、意外销毁后的窗口重建和 Windows 任务栏恢复，并限制同一应用数据目录只运行一个实例。
+
+<p align="center">
+  <img src="docs/images/v1.2.0-token-reports-zh.png" alt="v1.2.0 本机 tokens 日报，使用合成测试数据" width="520">
+  <img src="docs/images/v1.2.0-history-navigation.png" alt="v1.2.0 历史曲线缩放与自由拖动" width="520">
+</p>
+
 #### v1.1.3：系统主题、液态玻璃与仅周额度模式
 
 v1.1.3 新增 **跟随系统** 主题选项，Windows 与 macOS 的浅色/深色外观会随系统设置实时切换，无需重启。macOS 完整界面同时加入原生动态材质与液态玻璃效果；开启“降低透明度”或运行环境不支持时，会自动回退到清晰的不透明界面。Windows 托盘和应用程序也换用清晰的多尺寸 Codex Floating Ball 图标，在浅色与深色任务栏中都更容易辨认。
@@ -162,6 +175,10 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 
 ### 主要功能
 
+- 本机 tokens 日、周、月报告及历史日期选择，后台按北京时间日结，错过结算后自动补算。
+- 历史曲线支持滚轮缩放、左键自由拖动、跨日期加载及重置视图；右键不平移，刷新保留当前视图。
+- Windows 托盘图标显示正常、告警、错误和暂无数据四种状态，macOS 使用单色模板。
+- 普通窗口关闭时收起为悬浮球；托盘操作可重建意外销毁的窗口，并支持 Windows 任务栏重建后的恢复。
 - 以紧凑悬浮球作为默认桌面状态，快速查看剩余额度。
 - 单击悬浮球展开完整额度面板。
 - 双击悬浮球立即刷新额度。
@@ -235,6 +252,14 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 本组件通过本机 Codex CLI 读取额度信息，不要求、不保存，也不会上传你的 Codex Token。
 
 ---
+
+### 本机 tokens 报告与数据保存
+
+点击完整面板顶部的报告图标，选择日、周、月或历史日期。统计读取本机 `$CODEX_HOME/sessions` 和 `archived_sessions` 中的用量记录，未设置 `CODEX_HOME` 时使用 `~/.codex`。按北京时间（UTC+8）归日，自然周从周一开始；当天未结算时显示待结算，本周、本月仅累计已结算日。
+
+总 tokens = 输入 + 输出；缓存已包含在输入中，推理已包含在输出中，不重复相加。归档副本、重复记录及可识别的继承累计量会去重。无记录不代表零用量，读取失败、日期不完整和无法归日的历史累计量会单独提示。报告表示本机可读取日志中的用量，不是账号所有设备的账单，也不是按额度百分比估算的数值。
+
+报告和用量元数据索引存储在 `token-reports.json`、`token-usage-index.json`；索引不保存对话正文，这些数据不会上传。Windows 数据目录为 `%APPDATA%/codex-floating-ball`，macOS 为 `~/Library/Application Support/codex-floating-ball`。退出旧版再运行新版，并保留应用数据目录，即可保留设置、额度历史及报告。“重新统计”可补读迟到的日志，后台统计不发送报告通知。
 
 ### 从源码运行
 
@@ -315,6 +340,19 @@ The project follows a local-first approach:
 ---
 
 ### Highlights
+
+#### v1.2.0: local-token reports and free chart navigation
+
+Version 1.2.0 adds **daily, weekly, and monthly local-token reports** with historical date selection and input, cached-input, output, and reasoning breakdowns. Daily settlement starts at `23:59:59` Beijing time, with a final read after midnight. Missed settlements catch up after restart or resume. Reports appear only when opened, and background settlement runs independently of quota auto-refresh.
+
+History charts now support wheel zoom and direct left-button dragging on the time axis. The curve follows the pointer pixel for pixel in either direction, even without zooming, and adjacent dates load automatically. The vertical axis stays at `0–100%`, refreshing preserves the view, and Reset view restores the selected period.
+
+A new concentric gap-ring and centered-ball tray icon provides four Windows status colors and a monochrome macOS template. Ordinary close requests collapse the ball, tray interaction recreates a destroyed window, and taskbar exclusion is restored after the Windows shell rebuilds. One instance is allowed per app-data directory.
+
+<p align="center">
+  <img src="docs/images/v1.2.0-token-reports-en.png" alt="v1.2.0 local-token daily report using synthetic test data" width="520">
+  <img src="docs/images/v1.2.0-history-navigation.png" alt="v1.2.0 history chart zoom and direct dragging" width="520">
+</p>
 
 #### v1.1.3: system themes, liquid glass, and weekly-only quota mode
 
@@ -430,6 +468,10 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 
 ### Features
 
+- Daily, weekly, and monthly local-token reports with historical dates, Beijing-time settlement, and catch-up after downtime.
+- Wheel zoom, direct left-button panning, adjacent-date loading, and reset controls for history charts; right-click does not pan and refresh preserves the view.
+- Four Windows tray states: normal, warning, error, and offline, plus a monochrome macOS template.
+- Ordinary close requests collapse the ball, tray interaction recreates a destroyed window, and Windows taskbar rebuilding restores taskbar exclusion.
 - Compact floating-ball desktop mode for quickly viewing remaining quota.
 - Single-click the floating ball to open the detailed quota panel.
 - Double-click the ball to refresh immediately.
@@ -503,6 +545,14 @@ If macOS blocks the first launch, open:
 Codex Floating Ball reads quota information from the locally installed Codex CLI. It does not request, store, or upload your Codex Token.
 
 ---
+
+### Local-token reports and data storage
+
+Open the report icon in the detail panel and select a day, week, month, or historical date. Reports read local usage records from `$CODEX_HOME/sessions` and `archived_sessions`, defaulting to `~/.codex`. Reporting uses Beijing time (UTC+8) and Monday-based calendar weeks. Today remains pending until settlement; current week/month totals include settled days only.
+
+Total tokens = input + output. Cached input is already part of input, and reasoning is already part of output. Archived copies, duplicate events, and identifiable inherited totals are deduplicated. Missing records do not mean zero usage. Read failures, imprecise timestamps, and undated historical totals are flagged separately. Reports describe readable local records, not account-wide billing or estimates converted from quota percentages.
+
+Reports and the usage-metadata index are stored in `token-reports.json` and `token-usage-index.json`. Conversation text is not retained in the index, and these files are not uploaded. Windows stores data in `%APPDATA%/codex-floating-ball`; macOS uses `~/Library/Application Support/codex-floating-ball`. Quit the old version before launching the new one and retain this directory to preserve settings, quota history, and reports. Recalculate catches up on late-written logs; settlement sends no report notifications.
 
 ### Build from source
 

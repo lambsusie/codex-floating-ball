@@ -1,11 +1,15 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage, nativeTheme, net, Notification, screen } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell, Tray, Menu, nativeImage, nativeTheme, net, Notification, screen, powerMonitor } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
+const { execFile } = require("node:child_process");
 const { getQuota, resolveCodexPath, shutdownQuotaService } = require("./quota-service");
 const { appendHistory, exportHistoryCsv, readHistoryRange } = require("./history-service");
 const { DEFAULT_COMPACT_APPEARANCE, normalizeCompactAppearance } = require("./compact-appearance");
 const { checkForUpdate, RELEASES_PAGE_URL } = require("./update-service");
 const { getThemeState, normalizeThemeSource } = require("./theme-service");
+const { isLive, keepOffTaskbar, attachWindowLifecycle } = require("./window-lifecycle");
+const { createTokenReportService } = require("./token-report-service");
 
 const DETAIL_SIZE = { width: 520, height: 360 };
 const DEFAULT_WINDOW_MODE = "compact";
@@ -22,8 +26,20 @@ let saveBoundsTimer;
 let availableUpdate;
 let themeSource = "system";
 let macGlassAvailable = true;
+let isQuitting = false;
+let taskbarMessage;
+let taskbarTimer;
+let reportService;
+let trayState = "offline";
+
+function sendToWindow(channel, value) {
+  if (isLive(mainWindow) && !mainWindow.webContents.isDestroyed()) mainWindow.webContents.send(channel, value);
+}
 
 if (process.platform === "win32") app.setAppUserModelId(APP_ID);
+const ownsInstance = app.requestSingleInstanceLock();
+if (!ownsInstance) app.quit();
+else app.on("second-instance", () => { void app.whenReady().then(toggleWindow); });
 
 function createWindow() {
   const initialSize = getWindowSize(currentWindowMode);
@@ -54,12 +70,24 @@ function createWindow() {
     windowOptions.visualEffectState = "active";
   }
   mainWindow = new BrowserWindow(windowOptions);
+  const window = mainWindow;
+  attachWindowLifecycle(window, {
+    isQuitting: () => isQuitting,
+    collapse: () => setWindowMode("compact"),
+    onClosed: (closed) => {
+      if (mainWindow === closed) mainWindow = null;
+      clearTimeout(saveBoundsTimer);
+    }
+  });
+  hookTaskbarRecovery(window);
   mainWindow.setHasShadow(false);
   updateMacWindowEffects(themeState);
 
   mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
   mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
+    if (!isLive(window)) return;
+    window.show();
+    keepOffTaskbar(window);
     restoreWindowBounds(currentWindowMode);
   });
   mainWindow.on("moved", scheduleSaveWindowBounds);
@@ -70,7 +98,7 @@ function createWindow() {
 }
 
 function placeWindowTopRight() {
-  if (!mainWindow) return;
+  if (!isLive(mainWindow)) return;
   const display = screen.getPrimaryDisplay();
   const { width, height } = mainWindow.getBounds();
   const { workArea } = display;
@@ -83,7 +111,7 @@ function placeWindowTopRight() {
 }
 
 function restoreWindowBounds(mode = currentWindowMode) {
-  if (!mainWindow) return;
+  if (!isLive(mainWindow)) return;
   const savedBounds = readWindowBounds(mode);
   if (savedBounds && isBoundsVisible(savedBounds)) {
     mainWindow.setBounds(savedBounds);
@@ -94,7 +122,7 @@ function restoreWindowBounds(mode = currentWindowMode) {
 }
 
 function scheduleSaveWindowBounds() {
-  if (!mainWindow) return;
+  if (!isLive(mainWindow)) return;
   if (saveBoundsTimer) clearTimeout(saveBoundsTimer);
   saveBoundsTimer = setTimeout(() => {
     saveBoundsTimer = undefined;
@@ -103,7 +131,7 @@ function scheduleSaveWindowBounds() {
 }
 
 function saveWindowBounds() {
-  if (!mainWindow) return;
+  if (!isLive(mainWindow)) return;
   const settings = readSettings();
   settings.windowBounds = mainWindow.getBounds();
   writeSettings(settings);
@@ -224,7 +252,7 @@ function setWindowMode(mode) {
   }
 
   currentWindowMode = mode;
-  if (!mainWindow) return currentWindowMode;
+  if (!isLive(mainWindow)) return currentWindowMode;
 
   const size = getWindowSize(mode);
   const nextBounds = resizeFromRightEdge(mainWindow.getBounds(), size);
@@ -246,14 +274,14 @@ function setCompactAppearance(value) {
   settings.compactAppearance = compactAppearance;
   writeSettings(settings);
 
-  if (mainWindow && currentWindowMode === "compact") {
+  if (isLive(mainWindow) && currentWindowMode === "compact") {
     const size = getWindowSize("compact");
     const nextBounds = resizeFromRightEdge(mainWindow.getBounds(), size);
     mainWindow.setMinimumSize(size.width, size.height);
     mainWindow.setBounds(clampBoundsToDisplay(nextBounds));
     saveWindowBounds();
   }
-  mainWindow?.webContents.send("settings:compactAppearanceChanged", compactAppearance);
+  sendToWindow("settings:compactAppearanceChanged", compactAppearance);
   return getCompactAppearance();
 }
 
@@ -262,7 +290,7 @@ function setCompactAlert(value) {
   if (compactAlertActive === nextValue) return compactAlertActive;
 
   compactAlertActive = nextValue;
-  if (mainWindow && currentWindowMode === "compact") {
+  if (isLive(mainWindow) && currentWindowMode === "compact") {
     const size = getWindowSize("compact");
     const nextBounds = resizeFromRightEdge(mainWindow.getBounds(), size);
     mainWindow.setMinimumSize(size.width, size.height);
@@ -274,7 +302,7 @@ function setCompactAlert(value) {
 }
 
 function moveWindowBy(dx, dy) {
-  if (!mainWindow) return null;
+  if (!isLive(mainWindow)) return null;
   const deltaX = Math.round(Number(dx));
   const deltaY = Math.round(Number(dy));
   if (!Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return mainWindow.getBounds();
@@ -321,27 +349,44 @@ function isBoundsVisible(bounds) {
   });
 }
 
-function createTray() {
+function getTrayIcon() {
   const assetName = process.platform === "darwin"
     ? "trayTemplate.png"
-    : (process.platform === "win32" ? "icon.ico" : "tray-icon.png");
+    : `tray-${trayState}.${process.platform === "win32" ? "ico" : "png"}`;
   let icon = nativeImage.createFromPath(path.join(__dirname, "../../assets", assetName));
   if (icon.isEmpty()) {
     icon = nativeImage.createFromPath(path.join(__dirname, "../../assets/tray-icon.png"));
   }
   if (process.platform === "darwin") icon.setTemplateImage(true);
-  tray = new Tray(icon);
+  return icon;
+}
+
+function setTrayState(value) {
+  const next = ["normal", "warning", "error", "offline"].includes(value) ? value : "offline";
+  if (next === trayState) return;
+  trayState = next;
+  if (tray && !tray.isDestroyed()) {
+    tray.setImage(getTrayIcon());
+    tray.setToolTip(`Codex Floating Ball (${next})`);
+  }
+}
+
+function createTray() {
+  tray = new Tray(getTrayIcon());
   tray.setToolTip("Codex Quota Widget");
   rebuildTrayMenu();
   tray.on("click", toggleWindow);
 }
 
 function rebuildTrayMenu() {
-  if (!tray) return;
+  if (!tray || tray.isDestroyed()) return;
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: currentWindowMode === "detail" ? "收起为悬浮球" : "显示完整面板", click: toggleWindow },
-      { label: "刷新额度", click: () => mainWindow?.webContents.send("quota:refresh") },
+      { label: "刷新额度", click: () => {
+        if (!isLive(mainWindow)) createWindow();
+        else sendToWindow("quota:refresh");
+      } },
       {
         label: isAlwaysOnTop ? "取消置顶" : "置顶",
         click: () => setAlwaysOnTop(!isAlwaysOnTop)
@@ -354,7 +399,7 @@ function rebuildTrayMenu() {
 
 function setAlwaysOnTop(value) {
   isAlwaysOnTop = Boolean(value);
-  if (mainWindow) {
+  if (isLive(mainWindow)) {
     mainWindow.setAlwaysOnTop(isAlwaysOnTop);
     mainWindow.webContents.send("window:alwaysOnTopChanged", isAlwaysOnTop);
   }
@@ -363,12 +408,41 @@ function setAlwaysOnTop(value) {
 }
 
 function toggleWindow() {
-  if (!mainWindow) return;
+  if (!isLive(mainWindow)) {
+    currentWindowMode = "detail";
+    createWindow();
+    return;
+  }
   if (!mainWindow.isVisible()) {
     mainWindow.show();
   }
   setWindowMode(currentWindowMode === "detail" ? "compact" : "detail");
   mainWindow.focus();
+  keepOffTaskbar(mainWindow);
+}
+
+function hookTaskbarRecovery(window) {
+  if (!taskbarMessage || !isLive(window)) return;
+  window.hookWindowMessage(taskbarMessage, () => {
+    keepOffTaskbar(window);
+    setTimeout(() => keepOffTaskbar(window), 500).unref();
+  });
+}
+
+function startTaskbarRecovery() {
+  if (process.platform !== "win32") return;
+  // Explorer broadcasts this registered message after rebuilding its taskbar.
+  const script = 'Add-Type -TypeDefinition \'using System.Runtime.InteropServices; public class ShellMessage { [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern uint RegisterWindowMessage(string name); }\'; [ShellMessage]::RegisterWindowMessage("TaskbarCreated")';
+  execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script],
+    { windowsHide: true, timeout: 10000 }, (error, output) => {
+      const value = Number(output?.trim());
+      if (error || isQuitting || !Number.isInteger(value) || value < 0xc000 || value > 0xffff) return;
+      taskbarMessage = value;
+      hookTaskbarRecovery(mainWindow);
+    });
+  // Fallback for missed shell broadcasts or delayed Explorer startup.
+  taskbarTimer = setInterval(() => keepOffTaskbar(mainWindow), 2000);
+  taskbarTimer.unref();
 }
 
 async function getLatestUpdate() {
@@ -393,6 +467,7 @@ function showUpdateNotification(language) {
 }
 
 app.whenReady().then(() => {
+  if (!ownsInstance) return;
   if (process.platform === "darwin") app.dock?.hide();
   const settings = readSettings();
   compactAppearance = normalizeCompactAppearance(settings.compactAppearance);
@@ -400,6 +475,17 @@ app.whenReady().then(() => {
   nativeTheme.themeSource = themeSource;
   createWindow();
   createTray();
+  startTaskbarRecovery();
+  reportService = createTokenReportService({
+    userData: app.getPath("userData"),
+    codexHome: process.env.CODEX_HOME || path.join(os.homedir(), ".codex"),
+    onUpdated: () => sendToWindow("reports:updated")
+  });
+  reportService.start();
+  powerMonitor.on("resume", () => {
+    reportService.resume();
+    keepOffTaskbar(mainWindow);
+  });
   nativeTheme.on("updated", broadcastThemeState);
 
   ipcMain.handle("quota:get", async () => getQuota());
@@ -418,8 +504,12 @@ app.whenReady().then(() => {
   ipcMain.handle("theme:get", () => getCurrentThemeState());
   ipcMain.handle("theme:set", (_event, value) => setThemeSource(value));
   ipcMain.handle("history:record", (_event, quota) => appendHistory(getHistoryPath(), quota));
-  ipcMain.handle("history:get", (_event, range) => readHistoryRange(getHistoryPath(), range?.start, range?.end));
+  ipcMain.handle("history:get", (_event, range) => readHistoryRange(getHistoryPath(), range?.start, range?.end,
+    Math.max(2400, Math.min(100000, Number(range?.maxPoints) || 2400))));
   ipcMain.handle("history:export", (_event, language) => exportHistory(language));
+  ipcMain.handle("reports:get", (_event, query) => reportService.getReport(query));
+  ipcMain.handle("reports:refresh", () => reportService.refresh());
+  ipcMain.handle("tray:state", (_event, value) => setTrayState(value));
   ipcMain.handle("app:version", () => app.getVersion());
   ipcMain.handle("updates:check", () => getLatestUpdate());
   ipcMain.handle("updates:notify", (_event, language) => showUpdateNotification(language));
@@ -429,12 +519,17 @@ app.whenReady().then(() => {
   });
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (!isLive(mainWindow)) createWindow();
+    else { mainWindow.show(); keepOffTaskbar(mainWindow); }
   });
 });
 
-app.on("window-all-closed", (event) => {
-  event.preventDefault();
-});
+app.on("window-all-closed", () => {});
 
-app.on("before-quit", shutdownQuotaService);
+app.on("before-quit", () => {
+  isQuitting = true;
+  clearTimeout(saveBoundsTimer);
+  clearInterval(taskbarTimer);
+  reportService?.stop();
+  shutdownQuotaService();
+});

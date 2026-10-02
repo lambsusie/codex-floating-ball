@@ -1,0 +1,26 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { EventEmitter } = require("node:events");
+const { isLive, keepOffTaskbar, attachWindowLifecycle } = require("../src/main/window-lifecycle");
+test("taskbar close collapses without destroying; explicit quit is allowed", () => {
+  const window = new EventEmitter();
+  let destroyed = false, quitting = false, collapsed = 0, skipped = 0, closed;
+  window.isDestroyed = () => destroyed;
+  window.setSkipTaskbar = (value) => { assert.equal(value, true); skipped++; };
+  attachWindowLifecycle(window, { isQuitting: () => quitting, collapse: () => collapsed++, onClosed: (value) => { closed = value; } });
+  let prevented = 0;
+  window.emit("close", { preventDefault: () => prevented++ });
+  assert.equal(prevented, 1);
+  assert.equal(collapsed, 1);
+  for (const name of ["show", "restore", "focus"]) window.emit(name);
+  assert.equal(skipped, 4);
+  quitting = true;
+  window.emit("close", { preventDefault: () => prevented++ });
+  assert.equal(prevented, 1);
+  destroyed = true;
+  window.emit("closed");
+  assert.equal(closed, window);
+  assert.equal(isLive(window), false);
+  assert.equal(keepOffTaskbar(window), false);
+  assert.equal(keepOffTaskbar(null), false);
+});

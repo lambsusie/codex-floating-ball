@@ -42,6 +42,9 @@
             </div>
           </div>
           <div class="window-actions">
+            <button id="reportsBtn" class="icon-button" title="消耗报告" aria-label="消耗报告">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 17v-3M12 17v-6M16 17v-4" /></svg>
+            </button>
             <button id="historyBtn" class="icon-button" title="额度历史" aria-label="额度历史">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6" />
@@ -305,6 +308,9 @@
             <button id="historyPrevBtn" class="history-nav-button" type="button" aria-label="上一时段">‹</button>
             <strong id="historyRangeLabel">--</strong>
             <button id="historyNextBtn" class="history-nav-button" type="button" aria-label="下一时段">›</button>
+            <button id="historyZoomReset" class="icon-button history-reset" type="button" title="重置缩放" aria-label="重置缩放" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 3v7h7" /></svg>
+            </button>
             <label class="history-metric-control">
               <select id="historyMetricSelect" aria-label="纵轴显示">
                 <option value="used">消耗额度</option>
@@ -327,11 +333,47 @@
             <span id="historyPointCount">0 个记录点</span>
           </div>
         </section>
+        <section id="reportsPanel" class="reports-panel" hidden>
+          <div class="history-header">
+            <button id="reportsBackBtn" class="icon-button" type="button" title="返回" aria-label="返回">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+            <div><strong id="reportsTitle">消耗报告</strong><span id="reportsSubtitle">本机记录的 tokens · 北京时间</span></div>
+            <button id="reportsRefreshBtn" class="icon-button" type="button" title="重新统计" aria-label="重新统计">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.7 5.7M4 12A8 8 0 0 1 17.7 6.3M17 3v4h-4M7 21v-4h4" /></svg>
+            </button>
+            <div class="history-periods" role="tablist" aria-label="报告时间范围">
+              <button class="period-button active" role="tab" type="button" data-report-period="day">日</button>
+              <button class="period-button" role="tab" type="button" data-report-period="week">周</button>
+              <button class="period-button" role="tab" type="button" data-report-period="month">月</button>
+            </div>
+          </div>
+          <div class="report-navigator">
+            <button id="reportsPrevBtn" class="history-nav-button" type="button" aria-label="上一时段">‹</button>
+            <strong id="reportsRange">--</strong>
+            <button id="reportsNextBtn" class="history-nav-button" type="button" aria-label="下一时段">›</button>
+            <input id="reportsDate" type="date" aria-label="选择日期" />
+          </div>
+          <div id="reportsScroll" class="reports-scroll" tabindex="0">
+            <div id="reportsStatus" class="report-notice" role="status"></div>
+            <div class="report-total"><span id="reportsTotalLabel">总 tokens</span><strong id="reportsTotal">--</strong></div>
+            <dl class="report-breakdown">
+              <div><dt id="reportsInputLabel">输入（含缓存）</dt><dd id="reportsInput">--</dd></div>
+              <div><dt id="reportsOutputLabel">输出（含推理）</dt><dd id="reportsOutput">--</dd></div>
+              <div><dt id="reportsCachedLabel">其中：缓存输入</dt><dd id="reportsCached">--</dd></div>
+              <div><dt id="reportsReasoningLabel">其中：推理输出</dt><dd id="reportsReasoning">--</dd></div>
+            </dl>
+            <p id="reportsCoverage" class="report-note"></p>
+            <table id="reportsTable" class="report-table"><thead><tr><th id="reportsDayLabel">日期</th><th>Tokens</th></tr></thead><tbody id="reportsDays"></tbody></table>
+            <p id="reportsCaveat" class="report-note"></p>
+          </div>
+        </section>
       </section>
     </main>
 
     <script src="./smart-refresh.js"></script>
     <script src="./history-utils.js"></script>
+    <script src="./report-view.js"></script>
     <script src="./renderer.js"></script>
   </body>
 </html>

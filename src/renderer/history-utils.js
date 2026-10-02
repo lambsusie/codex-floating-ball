@@ -74,6 +74,41 @@
     return number === null ? null : 100 - number;
   }
 
+  function zoomViewport(view, bounds, fraction, delta) {
+    const anchor = Math.max(0, Math.min(1, fraction));
+    const oldSpan = view.end - view.start;
+    const span = Math.max(Math.min(60000, bounds.end - bounds.start),
+      Math.min(bounds.end - bounds.start, oldSpan * Math.exp(Math.max(-2, Math.min(2, delta * 0.002)))));
+    const start = view.start + oldSpan * anchor - span * anchor;
+    return { start, end: start + span };
+  }
+
+  function panViewport(view, deltaPixels, width) {
+    // Earlier timestamps move into view when the plotted content is pulled right.
+    const delta = -deltaPixels / Math.max(1, width) * (view.end - view.start);
+    return { start: view.start + delta, end: view.end + delta };
+  }
+
+  function bufferedHistoryRange(view) {
+    const padding = Math.max(3600000, Math.min(view.end - view.start, 7 * 86400000));
+    return { start: view.start - padding, end: view.end + padding };
+  }
+
+  function containsRange(container, view) {
+    return Boolean(container && container.start <= view.start && container.end >= view.end);
+  }
+
+  function isInsidePlot(x, y, plot) {
+    return Boolean(plot && x >= plot.left && x <= plot.right && y >= plot.top && y <= plot.bottom);
+  }
+
+  function visibleSeries(series, range) {
+    const first = series.findIndex((point) => point.timestamp >= range.start);
+    if (first < 0 || (first === 0 && series[0].timestamp > range.end)) return [];
+    const end = series.findIndex((point, index) => index >= first && point.timestamp > range.end);
+    return series.slice(Math.max(0, first - 1), end < 0 ? undefined : end + 1);
+  }
+
   function normalizePercent(value) {
     if (value === null || value === undefined || value === "") return null;
     const number = Number(value);
@@ -90,7 +125,8 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  const api = { buildConsumptionSeries, buildQuotaSeries, getAxisTickValues, getPeriodRange, shiftPeriod };
+  const api = { buildConsumptionSeries, buildQuotaSeries, getAxisTickValues, getPeriodRange, shiftPeriod,
+    zoomViewport, panViewport, bufferedHistoryRange, containsRange, isInsidePlot, visibleSeries };
   globalObject.historyUtils = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(globalThis);

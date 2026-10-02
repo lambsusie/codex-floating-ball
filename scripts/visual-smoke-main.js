@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
-app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-1-3"));
+app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-visual-smoke-v1-2-0"));
 
 function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -139,7 +139,7 @@ app.whenReady().then(async () => {
     const canvas = document.getElementById('historyChart');
     const point = state.historyChartPoints[Math.floor(state.historyChartPoints.length / 2)];
     const rect = canvas.getBoundingClientRect();
-    canvas.dispatchEvent(new MouseEvent('mousemove', {
+    canvas.dispatchEvent(new PointerEvent('pointermove', {
       bubbles: true,
       clientX: rect.left + point.x,
       clientY: rect.top + (point.primaryY ?? point.secondaryY)
