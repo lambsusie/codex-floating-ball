@@ -161,6 +161,14 @@
               <span id="autoUpdateSettingLabel">自动检查更新</span>
               <input id="autoUpdateToggle" class="settings-toggle" type="checkbox" role="switch" aria-label="自动检查更新" />
             </label>
+            <label class="settings-row default-view-row">
+              <span id="defaultDetailViewLabel">悬浮球默认打开页面</span>
+              <select id="defaultDetailViewSelect" aria-label="悬浮球默认打开页面">
+                <option value="main">额度概览</option>
+                <option value="history">消耗曲线</option>
+                <option value="reports">消耗报告</option>
+              </select>
+            </label>
             <div class="settings-row update-status-row">
               <span class="update-status-copy">
                 <span id="versionSettingLabel">版本更新</span>
@@ -292,6 +300,11 @@
               <strong id="historyTitle">额度消耗</strong>
               <span id="historySubtitle">每次刷新自动记录</span>
             </div>
+            <button id="historyPinBtn" class="icon-button history-pin-button" type="button" title="置顶曲线并保持展开" aria-label="置顶曲线并保持展开" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 4l6 6-3 1-4 4v4l-2 2-2-6-6-2 2-2h4l4-4 1-3z" />
+              </svg>
+            </button>
             <button id="historyExportBtn" class="icon-button history-export-button" type="button" title="导出记录" aria-label="导出记录">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3v12M8 11l4 4 4-4M5 20h14" />

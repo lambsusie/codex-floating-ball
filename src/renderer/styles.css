@@ -337,6 +337,8 @@ body[data-mode="detail"] .compact-widget {
   width: 28px;
 }
 
+.icon-button[hidden] { display: none; }
+
 .icon-button.has-update::after {
   position: absolute;
   top: -3px;
@@ -793,9 +795,15 @@ body[data-view="history"] .settings-panel {
   background: rgba(255, 255, 255, 0.42);
 }
 
-.history-export-button {
+.history-export-button,
+.history-pin-button {
   flex: 0 0 auto;
 }
+
+.default-view-row select { width: 146px; flex: 0 0 146px; }
+.history-header > div:nth-child(2) { min-width: 0; flex: 0 1 140px; }
+.history-header .history-periods { min-width: 156px; }
+.reports-panel .history-header .history-periods { min-width: 132px; }
 
 .history-export-button:disabled {
   cursor: default;
@@ -878,7 +886,7 @@ body[data-view="history"] .settings-panel {
   display: block;
   width: 100%;
   height: 100%;
-  cursor: crosshair;
+  cursor: grab;
 }
 
 .history-tooltip {

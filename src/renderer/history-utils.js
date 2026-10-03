@@ -61,12 +61,61 @@
     })).filter((point) => Number.isFinite(point.timestamp));
   }
 
-  function getAxisTickValues(mode, range) {
-    const intervals = mode === "cycle" ? 5 : mode === "week" ? 7 : 6;
+  const MINUTE = 60000;
+  const DAY = 86400000;
+  const TIME_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 180, 360, 720, 1440, 2880, 4320, 7200, 10080];
+
+  function getTimeAxis(range, width, language = "zh", measureText = (text) => text.length * 6) {
     const span = range.end - range.start;
-    return Array.from({ length: intervals + 1 }, (_value, index) => (
-      range.start + (span * index) / intervals
-    ));
+    if (!Number.isFinite(span) || span <= 0 || width <= 0) return { ticks: [], intervalMs: MINUTE };
+    const minuteOnly = span <= 10 * MINUTE;
+    const dated = span > DAY;
+    const minuteSuffix = language === "zh" ? "分" : "m";
+    const sample = minuteOnly ? `00${minuteSuffix}` : dated ? "00/00" : "00:00";
+    const spacing = Math.max(48, measureText(sample) + 18);
+    const target = span * spacing / width;
+    const intervalMs = (TIME_STEPS.find((step) => step * MINUTE >= target) || TIME_STEPS.at(-1)) * MINUTE;
+    const twoLine = dated && intervalMs < DAY;
+    const ticks = [];
+    const first = new Date(range.start);
+    if (intervalMs >= DAY) {
+      first.setHours(0, 0, 0, 0);
+      const dayIndex = Math.floor(Date.UTC(first.getFullYear(), first.getMonth(), first.getDate()) / DAY);
+      const stepDays = intervalMs / DAY;
+      first.setDate(first.getDate() - ((dayIndex % stepDays) + stepDays) % stepDays);
+    } else {
+      first.setSeconds(0, 0);
+      if (intervalMs < 60 * MINUTE) first.setMinutes(Math.floor(first.getMinutes() / (intervalMs / MINUTE)) * (intervalMs / MINUTE));
+      else {
+        first.setMinutes(0);
+        first.setHours(Math.floor(first.getHours() / (intervalMs / (60 * MINUTE))) * (intervalMs / (60 * MINUTE)));
+      }
+    }
+    const pad = (value) => String(value).padStart(2, "0");
+    const cursor = new Date(first);
+    for (let count = 0; cursor.getTime() <= range.end && count < 1000; count++) {
+      const time = cursor.getTime();
+      if (time >= range.start) {
+        const clock = `${pad(cursor.getHours())}:${pad(cursor.getMinutes())}`;
+        const label = minuteOnly ? [`${pad(cursor.getMinutes())}${minuteSuffix}`]
+          : dated ? [`${cursor.getMonth() + 1}/${cursor.getDate()}`, ...(twoLine ? [clock] : [])] : [clock];
+        ticks.push({ time, label, major: true });
+      }
+      // Calendar-day ticks must stay at local midnight across daylight-saving changes.
+      if (intervalMs >= DAY) cursor.setDate(cursor.getDate() + intervalMs / DAY);
+      else cursor.setTime(time + intervalMs);
+    }
+    // Sub-minute grids keep close-up views readable without repeating minute labels.
+    if (minuteOnly && intervalMs * width / span > 110) {
+      const minorMs = [5000, 10000, 15000, 30000].find((step) => step * width / span >= 40);
+      if (minorMs) {
+        for (let time = Math.ceil(range.start / minorMs) * minorMs; time <= range.end; time += minorMs) {
+          if (time % MINUTE !== 0) ticks.push({ time, label: [], major: false });
+        }
+      }
+    }
+    ticks.sort((a, b) => a.time - b.time);
+    return { ticks, intervalMs, minuteOnly, twoLine };
   }
 
   function remainingToUsed(value) {
@@ -125,7 +174,7 @@
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  const api = { buildConsumptionSeries, buildQuotaSeries, getAxisTickValues, getPeriodRange, shiftPeriod,
+  const api = { buildConsumptionSeries, buildQuotaSeries, getTimeAxis, getPeriodRange, shiftPeriod,
     zoomViewport, panViewport, bufferedHistoryRange, containsRange, isInsidePlot, visibleSeries };
   globalObject.historyUtils = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

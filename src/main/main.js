@@ -20,6 +20,8 @@ let mainWindow;
 let tray;
 let isAlwaysOnTop = true;
 let currentWindowMode = DEFAULT_WINDOW_MODE;
+let currentDetailView = "main";
+let historyPinned = false;
 let compactAlertActive = false;
 let compactAppearance = { ...DEFAULT_COMPACT_APPEARANCE };
 let saveBoundsTimer;
@@ -53,7 +55,7 @@ function createWindow() {
     thickFrame: false,
     transparent: true,
     resizable: false,
-    alwaysOnTop: isAlwaysOnTop,
+    alwaysOnTop: effectiveAlwaysOnTop(),
     skipTaskbar: true,
     hasShadow: false,
     show: false,
@@ -76,6 +78,8 @@ function createWindow() {
     collapse: () => setWindowMode("compact"),
     onClosed: (closed) => {
       if (mainWindow === closed) mainWindow = null;
+      currentDetailView = "main";
+      historyPinned = false;
       clearTimeout(saveBoundsTimer);
     }
   });
@@ -93,7 +97,7 @@ function createWindow() {
   mainWindow.on("moved", scheduleSaveWindowBounds);
   mainWindow.on("resized", scheduleSaveWindowBounds);
   mainWindow.on("blur", () => {
-    if (currentWindowMode === "detail") setWindowMode("compact");
+    if (currentWindowMode === "detail" && !isHistoryPinned()) setWindowMode("compact");
   });
 }
 
@@ -252,6 +256,8 @@ function setWindowMode(mode) {
   }
 
   currentWindowMode = mode;
+  if (mode === "compact") setDetailView("main");
+  applyWindowPinning();
   if (!isLive(mainWindow)) return currentWindowMode;
 
   const size = getWindowSize(mode);
@@ -400,11 +406,38 @@ function rebuildTrayMenu() {
 function setAlwaysOnTop(value) {
   isAlwaysOnTop = Boolean(value);
   if (isLive(mainWindow)) {
-    mainWindow.setAlwaysOnTop(isAlwaysOnTop);
+    applyWindowPinning();
     mainWindow.webContents.send("window:alwaysOnTopChanged", isAlwaysOnTop);
   }
   rebuildTrayMenu();
   return isAlwaysOnTop;
+}
+
+function isHistoryPinned() {
+  return currentWindowMode === "detail" && currentDetailView === "history" && historyPinned;
+}
+
+function effectiveAlwaysOnTop() {
+  return currentWindowMode === "detail" && currentDetailView === "history" ? historyPinned : isAlwaysOnTop;
+}
+
+function applyWindowPinning() {
+  if (isLive(mainWindow)) mainWindow.setAlwaysOnTop(effectiveAlwaysOnTop());
+}
+
+function setDetailView(value) {
+  currentDetailView = ["settings", "history", "reports"].includes(value) ? value : "main";
+  if (currentDetailView !== "history") historyPinned = false;
+  applyWindowPinning();
+  sendToWindow("window:historyPinnedChanged", historyPinned);
+  return historyPinned;
+}
+
+function setHistoryPinned(value) {
+  historyPinned = currentWindowMode === "detail" && currentDetailView === "history" && Boolean(value);
+  applyWindowPinning();
+  sendToWindow("window:historyPinnedChanged", historyPinned);
+  return historyPinned;
 }
 
 function toggleWindow() {
@@ -493,6 +526,8 @@ app.whenReady().then(() => {
   ipcMain.handle("window:close", () => app.quit());
   ipcMain.handle("window:alwaysOnTop:get", () => isAlwaysOnTop);
   ipcMain.handle("window:alwaysOnTop:set", (_event, value) => setAlwaysOnTop(value));
+  ipcMain.handle("window:detailView:set", (_event, value) => setDetailView(value));
+  ipcMain.handle("window:historyPinned:set", (_event, value) => setHistoryPinned(value));
   ipcMain.handle("window:mode:get", () => getWindowMode());
   ipcMain.handle("window:mode:set", (_event, mode) => setWindowMode(mode));
   ipcMain.handle("window:compactAlert:set", (_event, value) => setCompactAlert(value));

@@ -46,6 +46,19 @@ Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工
 
 ### 项目亮点
 
+#### v1.2.1：默认页面、自适应刻度与曲线独立置顶
+
+在设置中选择单击悬浮球后打开**额度概览、消耗曲线或消耗报告**，选择会保存，默认仍为额度概览；双击仍刷新额度。
+
+曲线、竖向时间网格和横轴标签现在随左键拖动同步移动。滚轮缩放时，刻度间隔与数量会根据时间跨度和空间自适应调整；可见跨度不超过 10 分钟时仅显示分钟，极短范围补充无标签细网格，完整时间保留在范围栏和悬停详情中，纵轴始终固定为 `0–100%`。
+
+曲线页的独立图钉可让曲线在操作其他窗口时保持展开。取消置顶后恢复失焦收起；主动收起或离开曲线页会结束本次置顶，不改变悬浮球自己的置顶设置。升级继续沿用原有设置、额度历史和本机 tokens 报告。
+
+<p align="center">
+  <img src="docs/images/v1.2.1-default-page-zh.png" alt="v1.2.1 默认打开页面设置，演示数据" width="520">
+  <img src="docs/images/v1.2.1-pinned-chart-zh.png" alt="v1.2.1 曲线独立置顶与同步时间网格，演示数据" width="520">
+</p>
+
 #### v1.2.0：本机 tokens 报告与历史曲线自由导航
 
 v1.2.0 新增本机 tokens 的 **日、周、月消耗报告**，可选择历史日期，查看总量、输入、缓存输入、输出和推理输出。后台每天在北京时间 `23:59:59` 开始结算，跨午夜补读最后一秒；错过结算后，会在下次启动或唤醒时自动补算。报告仅在主动打开时显示，后台统计独立于额度自动刷新。
@@ -175,6 +188,8 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 
 ### 主要功能
 
+- 可保存单击悬浮球默认打开的页面：额度概览、消耗曲线或消耗报告。
+- 曲线、时间网格和标签同步拖动，自适应时间刻度，以及不影响悬浮球置顶设置的曲线独立置顶。
 - 本机 tokens 日、周、月报告及历史日期选择，后台按北京时间日结，错过结算后自动补算。
 - 历史曲线支持滚轮缩放、左键自由拖动、跨日期加载及重置视图；右键不平移，刷新保留当前视图。
 - Windows 托盘图标显示正常、告警、错误和暂无数据四种状态，macOS 使用单色模板。
@@ -341,6 +356,18 @@ The project follows a local-first approach:
 
 ### Highlights
 
+#### v1.2.1: default page, adaptive ticks, and independent chart pinning
+
+Choose and save the page opened by a single click on the ball: **quota overview, usage chart, or usage reports**. The default remains the overview; double-click still refreshes quota.
+
+Curves, vertical time grids, and labels now move together during left-button dragging. Wheel zoom adapts tick spacing and density to the visible time span and available space. Views of ten minutes or less use minute-only labels, with unlabeled fine grids at close zoom levels. Full timestamps remain in the range and hover details, and the Y axis stays at `0–100%`.
+
+The chart's independent pin keeps it expanded while working in other windows. Unpinning restores collapse on focus loss; collapsing or leaving the chart ends its pin session without changing the ball's own pin setting. Upgrading retains settings, quota history, and local-token reports.
+
+<p align="center">
+  <img src="docs/images/v1.2.1-adaptive-chart-en.png" alt="v1.2.1 adaptive minute ticks using demo data" width="520">
+</p>
+
 #### v1.2.0: local-token reports and free chart navigation
 
 Version 1.2.0 adds **daily, weekly, and monthly local-token reports** with historical date selection and input, cached-input, output, and reasoning breakdowns. Daily settlement starts at `23:59:59` Beijing time, with a final read after midnight. Missed settlements catch up after restart or resume. Reports appear only when opened, and background settlement runs independently of quota auto-refresh.
@@ -468,6 +495,8 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 
 ### Features
 
+- Save the default page opened by a single click: quota overview, usage chart, or usage reports.
+- Synchronized curve/grid/label panning, adaptive time ticks, and independent chart pinning without changing the ball's pin preference.
 - Daily, weekly, and monthly local-token reports with historical dates, Beijing-time settlement, and catch-up after downtime.
 - Wheel zoom, direct left-button panning, adjacent-date loading, and reset controls for history charts; right-click does not pan and refresh preserves the view.
 - Four Windows tray states: normal, warning, error, and offline, plus a monochrome macOS template.

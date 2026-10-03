@@ -22,6 +22,12 @@ const labels = {
     themeSystem: "跟随系统",
     themeLight: "浅色",
     themeDark: "深色",
+    defaultDetailView: "悬浮球默认打开页面",
+    viewMain: "额度概览",
+    viewHistory: "消耗曲线",
+    viewReports: "消耗报告",
+    historyPinOn: "取消曲线置顶",
+    historyPinOff: "置顶曲线并保持展开",
     autoUpdate: "自动检查更新",
     versionUpdate: "版本更新",
     currentVersion: "当前版本 v{version}",
@@ -113,6 +119,12 @@ const labels = {
     themeSystem: "Follow system",
     themeLight: "Light",
     themeDark: "Dark",
+    defaultDetailView: "Open from floating ball",
+    viewMain: "Quota overview",
+    viewHistory: "Usage chart",
+    viewReports: "Usage reports",
+    historyPinOn: "Unpin chart",
+    historyPinOff: "Pin chart and keep open",
     autoUpdate: "Automatically check for updates",
     versionUpdate: "App updates",
     currentVersion: "Current version v{version}",
@@ -198,7 +210,7 @@ const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const HISTORY_METRICS = new Set(["used", "remaining"]);
 const TIME_DISPLAY_MODES = new Set(["duration", "point"]);
 const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = window.smartRefreshUtils;
-const { buildQuotaSeries, getAxisTickValues, getPeriodRange, shiftPeriod,
+const { buildQuotaSeries, getTimeAxis, getPeriodRange, shiftPeriod,
   zoomViewport, panViewport, bufferedHistoryRange, containsRange, isInsidePlot, visibleSeries } = window.historyUtils;
 
 const state = {
@@ -217,6 +229,8 @@ const state = {
   alwaysOnTop: true,
   mode: "compact",
   view: "main",
+  defaultDetailView: getStoredDefaultDetailView(),
+  historyPinned: false,
   weeklyAlertThreshold: getStoredWeeklyThreshold(),
   primaryTimeDisplay: getStoredTimeDisplay("codex-led-primary-time-display"),
   secondaryTimeDisplay: getStoredTimeDisplay("codex-led-secondary-time-display"),
@@ -244,6 +258,7 @@ const state = {
   historyLoadedRange: null,
   historyPendingRange: null,
   historyPlot: null,
+  historyAxis: null,
   lastQuota: null
 };
 
@@ -286,6 +301,9 @@ const el = {
   languageSelect: document.getElementById("languageSelect"),
   themeSettingLabel: document.getElementById("themeSettingLabel"),
   themeSelect: document.getElementById("themeSelect"),
+  defaultDetailViewLabel: document.getElementById("defaultDetailViewLabel"),
+  defaultDetailViewSelect: document.getElementById("defaultDetailViewSelect"),
+  historyPinBtn: document.getElementById("historyPinBtn"),
   autoUpdateSettingLabel: document.getElementById("autoUpdateSettingLabel"),
   autoUpdateToggle: document.getElementById("autoUpdateToggle"),
   versionSettingLabel: document.getElementById("versionSettingLabel"),
@@ -368,6 +386,17 @@ function getStoredThemeSource() {
   return value === "light" || value === "dark" ? value : "system";
 }
 
+function getStoredDefaultDetailView() {
+  const value = localStorage.getItem("codex-led-default-detail-view");
+  return ["history", "reports"].includes(value) ? value : "main";
+}
+
+function setDefaultDetailView(value) {
+  state.defaultDetailView = ["history", "reports"].includes(value) ? value : "main";
+  localStorage.setItem("codex-led-default-detail-view", state.defaultDetailView);
+  updateSettingsControls();
+}
+
 function getStoredAutoCheckUpdates() {
   return localStorage.getItem("codex-led-auto-check-updates") !== "false";
 }
@@ -435,6 +464,8 @@ function applyLabels() {
   el.languageSelect.setAttribute("aria-label", t("language"));
   el.themeSettingLabel.textContent = t("theme");
   el.themeSelect.setAttribute("aria-label", t("theme"));
+  el.defaultDetailViewLabel.textContent = t("defaultDetailView");
+  el.defaultDetailViewSelect.setAttribute("aria-label", t("defaultDetailView"));
   el.autoUpdateSettingLabel.textContent = t("autoUpdate");
   el.autoUpdateToggle.setAttribute("aria-label", t("autoUpdate"));
   el.versionSettingLabel.textContent = t("versionUpdate");
@@ -492,9 +523,14 @@ function applyLabels() {
   updateHistoryMetricControls();
   updateHistoryPeriodControls();
   updatePinButton(state.alwaysOnTop);
+  updateHistoryPinButton(state.historyPinned);
 }
 
 function updateSettingsControls() {
+  el.defaultDetailViewSelect.value = state.defaultDetailView;
+  for (const [value, key] of Object.entries({ main: "viewMain", history: "viewHistory", reports: "viewReports" })) {
+    el.defaultDetailViewSelect.querySelector(`[value="${value}"]`).textContent = t(key);
+  }
   el.languageSelect.value = state.lang;
   el.themeSelect.value = state.themeSource;
   el.themeSelect.querySelector('[value="system"]').textContent = t("themeSystem");
@@ -581,9 +617,19 @@ function updatePinButton(value) {
 }
 
 function updateWindowMode(mode) {
+  const previousMode = state.mode;
   state.mode = mode === "detail" ? "detail" : "compact";
   el.body.dataset.mode = state.mode;
   if (state.mode === "compact") updateDetailView("main");
+  else if (previousMode !== "detail") updateDetailView(state.defaultDetailView);
+}
+
+function updateHistoryPinButton(value) {
+  state.historyPinned = Boolean(value);
+  el.historyPinBtn.classList.toggle("active", state.historyPinned);
+  el.historyPinBtn.setAttribute("aria-pressed", String(state.historyPinned));
+  el.historyPinBtn.title = t(state.historyPinned ? "historyPinOn" : "historyPinOff");
+  el.historyPinBtn.setAttribute("aria-label", el.historyPinBtn.title);
 }
 
 async function setWindowMode(mode) {
@@ -600,6 +646,9 @@ function updateDetailView(view) {
     state.historyPendingRange = null;
   }
   state.view = ["settings", "history", "reports"].includes(view) ? view : "main";
+  if (state.view !== "history") updateHistoryPinButton(false);
+  el.pinBtn.hidden = state.view === "history";
+  void window.codexQuota.setDetailView(state.view).catch(() => {});
   window.tokenReportView.setVisible(state.view === "reports");
   el.body.dataset.view = state.view;
   el.settingsPanel.hidden = state.view !== "settings";
@@ -823,7 +872,7 @@ async function loadHistory({ force = true } = {}) {
 function formatHistoryRange(range) {
   const locale = state.lang === "zh" ? "zh-CN" : "en-US";
   const start = new Date(range.start);
-  const end = new Date(range.end - 1);
+  const end = new Date(state.historyViewport ? range.end : range.end - 1);
   if (state.historyViewport) {
     const fmt = (date) => date.toLocaleString(locale, { year: "2-digit", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
     return `${fmt(start)} - ${fmt(end)}`;
@@ -862,15 +911,16 @@ function drawHistoryChart() {
   const series = visibleSeries(buildQuotaSeries(state.historyRecords, state.historyMetric), range);
   updateHistorySeriesVisibility();
   const dark = state.theme === "dark";
-  const axisTimes = getAxisTickValues(state.historyPeriod, range);
-  const twoLineTicks = range.end - range.start > 86400000 && axisTimes[1] - axisTimes[0] < 86400000;
-  const plot = { left: 38, top: 10, right: rect.width - 10, bottom: rect.height - (twoLineTicks ? 34 : 23) };
+  const plot = { left: 38, top: 10, right: rect.width - 10, bottom: rect.height - 34 };
   state.historyPlot = plot;
   const plotWidth = Math.max(1, plot.right - plot.left);
   const plotHeight = Math.max(1, plot.bottom - plot.top);
   const gridColor = dark ? "rgba(148,163,184,.15)" : "rgba(71,85,105,.12)";
 
   ctx.font = '10px "Segoe UI", sans-serif';
+  const axis = getTimeAxis(range, plotWidth, state.lang, (text) => ctx.measureText(text).width);
+  const xFor = (timestamp) => plot.left + ((timestamp - range.start) / (range.end - range.start)) * plotWidth;
+  state.historyAxis = { ...axis, ticks: axis.ticks.map((tick) => ({ ...tick, x: xFor(tick.time) })) };
   ctx.lineWidth = 1;
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
@@ -886,23 +936,29 @@ function drawHistoryChart() {
   }
 
   ctx.textBaseline = "top";
-  axisTimes.forEach((time, index) => {
-    const x = plot.left + (index / (axisTimes.length - 1)) * plotWidth;
+  ctx.textAlign = "center";
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(plot.left, plot.top, plotWidth, rect.height - plot.top);
+  ctx.clip();
+  state.historyAxis.ticks.forEach(({ x, label, major }) => {
     ctx.strokeStyle = gridColor;
+    ctx.globalAlpha = major ? 1 : 0.5;
     ctx.beginPath();
     ctx.moveTo(x, plot.top);
     ctx.lineTo(x, plot.bottom);
     ctx.stroke();
-    ctx.textAlign = index === 0 ? "left" : index === axisTimes.length - 1 ? "right" : "center";
+    ctx.globalAlpha = 1;
     ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
-    const date = new Date(time);
-    ctx.fillText(formatAxisTime(date), x, plot.bottom + 6);
-    if (twoLineTicks) ctx.fillText(date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }), x, plot.bottom + 17);
+    const labelWidth = Math.max(0, ...label.map((line) => ctx.measureText(line).width));
+    if (x - labelWidth / 2 >= plot.left && x + labelWidth / 2 <= plot.right) {
+      label.forEach((line, index) => ctx.fillText(line, x, plot.bottom + 6 + index * 11));
+    }
   });
+  ctx.restore();
 
   drawSeries(ctx, series, "primaryValue", "#2563eb", range, plot);
   drawSeries(ctx, series, "secondaryValue", "#ef5c68", range, plot);
-  const xFor = (timestamp) => plot.left + ((timestamp - range.start) / (range.end - range.start)) * plotWidth;
   const yFor = (value) => plot.bottom - (value / 100) * plotHeight;
   state.historyChartPoints = series.filter((point) => point.timestamp >= range.start && point.timestamp <= range.end).map((point) => ({
     ...point,
@@ -1022,12 +1078,7 @@ function formatChartPercent(value) {
 }
 
 function formatAxisTime(date) {
-  const range = state.historyViewport || getPeriodRange(state.historyPeriod, state.historyAnchor);
-  if (range.end - range.start > 86400000) {
-    return date.toLocaleDateString(state.lang === "zh" ? "zh-CN" : "en-US", { month: "numeric", day: "numeric" });
-  }
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit",
-    ...(range.end - range.start < 300000 ? { second: "2-digit" } : {}) });
+  return date.toLocaleTimeString(state.lang === "zh" ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 let historyPan;
@@ -1587,6 +1638,14 @@ el.historyBtn.addEventListener("click", () => updateDetailView(state.view === "h
 el.settingsBtn.addEventListener("click", () => updateDetailView("settings"));
 el.settingsBackBtn.addEventListener("click", () => updateDetailView("main"));
 el.historyBackBtn.addEventListener("click", () => updateDetailView("main"));
+el.historyPinBtn.addEventListener("click", async () => {
+  el.historyPinBtn.disabled = true;
+  try {
+    updateHistoryPinButton(await window.codexQuota.setHistoryPinned(!state.historyPinned));
+  } finally {
+    el.historyPinBtn.disabled = false;
+  }
+});
 el.historyExportBtn.addEventListener("click", () => void exportHistoryRecords());
 el.historyMetricSelect.addEventListener("change", () => setHistoryMetric(el.historyMetricSelect.value));
 el.historyChart.addEventListener("pointermove", handleHistoryChartPointerMove);
@@ -1609,6 +1668,7 @@ window.addEventListener("blur", endHistoryPan);
 el.historyChart.addEventListener("mouseleave", hideHistoryTooltip);
 el.languageSelect.addEventListener("change", () => setLanguage(el.languageSelect.value));
 el.themeSelect.addEventListener("change", () => void setTheme(el.themeSelect.value));
+el.defaultDetailViewSelect.addEventListener("change", () => setDefaultDetailView(el.defaultDetailViewSelect.value));
 el.autoUpdateToggle.addEventListener("change", () => setAutoCheckUpdates(el.autoUpdateToggle.checked));
 el.checkUpdateBtn.addEventListener("click", handleUpdateAction);
 el.weeklyThresholdSelect.addEventListener("change", () => setWeeklyAlertThreshold(el.weeklyThresholdSelect.value));
@@ -1642,6 +1702,7 @@ el.autoRefreshSelect.addEventListener("change", () => {
 
 window.codexQuota.onRefresh(() => refreshQuota({ userInitiated: true }));
 window.codexQuota.onAlwaysOnTopChanged(updatePinButton);
+window.codexQuota.onHistoryPinnedChanged(updateHistoryPinButton);
 window.codexQuota.onWindowModeChanged(updateWindowMode);
 window.codexQuota.onThemeChanged(applyThemeState);
 window.addEventListener("resize", () => {
@@ -1681,7 +1742,6 @@ function configureAutoRefresh() {
     localStorage.setItem("codex-led-regular-refresh-minutes", String(state.regularRefreshMinutes));
     configureAutoRefresh();
   }
-  updateDetailView("main");
   applyLabels();
   refreshQuota();
   scheduleAutomaticUpdateCheck();

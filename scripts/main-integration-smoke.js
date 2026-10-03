@@ -19,10 +19,11 @@ fs.writeFileSync(path.join(process.env.CODEX_HOME, "sessions", "test.jsonl"), [
   } }
 ].map((row) => JSON.stringify(row)).join("\n") + "\n");
 const quota = require(path.join(target, "src/main/quota-service"));
-quota.getQuota = async () => ({ fetchedAt: Date.now(), planType: "plus",
+let quotaCalls = 0;
+quota.getQuota = async () => ({ fetchedAt: Date.now() + quotaCalls++, planType: "plus",
   primary: { remainingPercent: 68, usedPercent: 32, resetsAt: Date.now() + 3600000 },
   secondary: { remainingPercent: 32, usedPercent: 68, resetsAt: Date.now() + 86400000 } });
-require(path.join(target, "src/main/update-service")).checkForUpdate = async () => ({ updateAvailable: false, currentVersion: "1.2.0" });
+require(path.join(target, "src/main/update-service")).checkForUpdate = async () => ({ updateAvailable: false, currentVersion: "1.2.1" });
 let tray;
 const trayOn = Tray.prototype.on;
 Tray.prototype.on = function (name, listener) { if (name === "click") tray = this; return trayOn.call(this, name, listener); };
@@ -57,6 +58,42 @@ app.whenReady().then(async () => {
     const report = await window.webContents.executeJavaScript("window.codexQuota.getReport({period:'day', anchor:new Date(Date.now()-86400000+8*3600000).toISOString().slice(0,10)})");
     assert.equal(report.totals.total_tokens, 1100);
     assert.equal(report.sourceStatus, "ready");
+    const js = (code) => window.webContents.executeJavaScript(code);
+    const run = (code) => js(`(async () => { ${code} })()`);
+    assert.equal(await js("state.defaultDetailView"), "main");
+    for (const view of ["history", "reports", "main"]) {
+      await run(`setDefaultDetailView('${view}'); await setWindowMode('compact'); el.compactBall.click();`);
+      await until(async () => await js(`state.mode === 'detail' && state.view === '${view}'`));
+      assert.equal(await js("document.body.dataset.view"), view);
+    }
+    await js("setWindowMode('compact')");
+    const beforeRefresh = quotaCalls;
+    await js("el.compactBall.click(); el.compactBall.click()");
+    await until(() => quotaCalls > beforeRefresh);
+    await wait(300);
+    assert.equal(await js("state.mode"), "compact", "Double-click still refreshes without opening a page");
+    await run("setDefaultDetailView('history'); await setWindowMode('detail')");
+    await new Promise((resolve) => { window.webContents.once("did-finish-load", resolve); window.webContents.reload(); });
+    await until(async () => await js("state.lastQuota && state.view === 'history'"));
+    assert.equal(await js("state.defaultDetailView"), "history", "Default page survives renderer restart");
+    for (const ballPinned of [true, false]) {
+      await run(`await window.codexQuota.setAlwaysOnTop(${ballPinned}); await setWindowMode('detail'); updateDetailView('history');`);
+      await run("await window.codexQuota.setDetailView('history'); el.historyPinBtn.click()");
+      await until(async () => window.isAlwaysOnTop() && await js("state.historyPinned"));
+      window.emit("blur");
+      await wait(60);
+      assert.equal(await js("state.mode"), "detail", "Pinned chart must survive focus loss");
+      assert.equal(await js("window.codexQuota.getAlwaysOnTop()"), ballPinned);
+      await js("el.historyPinBtn.click()");
+      await until(async () => !window.isAlwaysOnTop() && !await js("state.historyPinned"));
+      window.emit("blur");
+      await until(async () => await js("state.mode === 'compact'"));
+      assert.equal(window.isAlwaysOnTop(), ballPinned, "Collapse restores the ball's own pin setting");
+    }
+    await run("await setWindowMode('detail'); await window.codexQuota.setDetailView('history'); await window.codexQuota.setHistoryPinned(true); updateDetailView('reports');");
+    await until(async () => !window.isAlwaysOnTop() && !await js("state.historyPinned"));
+    window.emit("blur");
+    await until(async () => await js("state.mode === 'compact'"));
     await window.webContents.executeJavaScript("window.codexQuota.setWindowMode('detail')");
     window.close();
     await wait(100);
@@ -84,6 +121,7 @@ app.whenReady().then(async () => {
     }
     assert.deepEqual(errors, []);
     console.log(JSON.stringify({ source: target.includes("app.asar") ? "packaged-asar" : "source", reports: true,
+      defaultPages: 3, defaultPagePersisted: true, doubleClickRefresh: true, independentChartPin: true, blurCollapseRestored: true,
       taskbarCloseCollapsed: true, trayRecreatedDestroyedWindow: true, shellRecovery: shellCallbacks > 0, trayStates: 4, errors }));
     app.quit();
   } catch (error) {
@@ -91,4 +129,4 @@ app.whenReady().then(async () => {
     app.exit(1);
   }
 });
-setTimeout(() => { console.error("Integration overall timeout"); app.exit(1); }, 25000).unref();
+setTimeout(() => { console.error("Integration overall timeout"); app.exit(1); }, 45000).unref();
