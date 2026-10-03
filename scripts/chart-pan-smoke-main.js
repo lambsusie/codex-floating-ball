@@ -5,9 +5,9 @@ const os = require("node:os");
 const assert = require("node:assert/strict");
 const scale = process.env.CFB_TEST_SCALE || "1";
 app.commandLine.appendSwitch("force-device-scale-factor", scale);
-app.setPath("userData", path.join(os.tmpdir(), `floating-ball-pan-qa-${scale}`));
+app.setPath("userData", fs.mkdtempSync(path.join(os.tmpdir(), `floating-ball-pan-v121-${scale}-`)));
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const output = path.join(__dirname, "../qa-v1.2.0");
+const output = path.join(__dirname, "../qa-v1.2.1");
 app.whenReady().then(async () => {
   const window = new BrowserWindow({ width: 520, height: 360, frame: false, show: false, skipTaskbar: true,
     webPreferences: { preload: path.join(__dirname, "visual-smoke-preload.js"), contextIsolation: true } });
@@ -49,6 +49,7 @@ app.whenReady().then(async () => {
         }
         const point = await js("state.historyChartPoints.reduce((a,b)=>Math.abs(a.x-190)<Math.abs(b.x-190)?a:b)");
         const before = await js("getHistoryViewport()");
+        const ticksBefore = await js("state.historyAxis.ticks");
         await drag(100, "right");
         assert.deepEqual(await js("getHistoryViewport()"), before, "Right-button drag must not change the viewport");
         assert.equal(await js("historyPan"), null);
@@ -57,6 +58,14 @@ app.whenReady().then(async () => {
         assert.ok(moved, "The same sampled point must still be present after dragging");
         assert.ok(Math.abs(moved.x - point.x - 100) < 0.1, `${period} zoom=${zoomed}: point moved ${moved.x - point.x}px`);
         assert.equal(moved.primaryY, point.primaryY);
+        const ticksAfter = await js("state.historyAxis.ticks");
+        const common = ticksBefore.filter((tick) => ticksAfter.some((other) => other.time === tick.time));
+        assert.ok(common.length > 1, "Shared time ticks must remain visible");
+        for (const tick of common) {
+          const next = ticksAfter.find((other) => other.time === tick.time);
+          assert.ok(Math.abs(next.x - tick.x - 100) < 0.1, "Grid and labels must move by the same 100 pixels");
+          assert.deepEqual(next.label, tick.label);
+        }
         await drag(-100);
         const returned = await js(`state.historyChartPoints.find(p=>p.timestamp===${point.timestamp})`);
         assert.ok(Math.abs(returned.x - point.x) < 0.1);

@@ -4,8 +4,8 @@ const path = require("node:path");
 const os = require("node:os");
 const assert = require("node:assert/strict");
 const { attachWindowLifecycle } = require("../src/main/window-lifecycle");
-const output = path.join(__dirname, "../qa-v1.2.0");
-app.setPath("userData", path.join(os.tmpdir(), "codex-floating-ball-v120-qa"));
+const output = path.join(__dirname, "../qa-v1.2.1/regression");
+app.setPath("userData", fs.mkdtempSync(path.join(os.tmpdir(), "codex-floating-ball-v121-regression-")));
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 app.whenReady().then(async () => {
   fs.mkdirSync(output, { recursive: true });
@@ -84,7 +84,7 @@ app.whenReady().then(async () => {
     assert.ok(cleared && window.isDestroyed());
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(output, "smoke-results.json"), JSON.stringify({ zoom, panned, visiblePoints, layouts, errors, closeIntercepted: collapsed, closedCleared: cleared }, null, 2));
-    console.log("v1.2.0 smoke passed: wheel/drag/tooltip/reset, 12 report layouts, native close lifecycle.");
+    console.log("Regression passed: wheel/drag/tooltip/reset, 12 report layouts, native close lifecycle.");
     app.exit(0);
   } catch (error) {
     console.error(error);

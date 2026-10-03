@@ -6,6 +6,11 @@ contextBridge.exposeInMainWorld("codexQuota", {
   close: () => ipcRenderer.invoke("window:close"),
   getAlwaysOnTop: () => ipcRenderer.invoke("window:alwaysOnTop:get"),
   setAlwaysOnTop: (value) => ipcRenderer.invoke("window:alwaysOnTop:set", value),
+  setDetailView: (value) => ipcRenderer.invoke("window:detailView:set", value),
+  setHistoryPinned: (value) => ipcRenderer.invoke("window:historyPinned:set", value),
+  onHistoryPinnedChanged: (callback) => {
+    ipcRenderer.on("window:historyPinnedChanged", (_event, value) => callback(value));
+  },
   getWindowMode: () => ipcRenderer.invoke("window:mode:get"),
   setWindowMode: (mode) => ipcRenderer.invoke("window:mode:set", mode),
   setCompactAlert: (value) => ipcRenderer.invoke("window:compactAlert:set", value),

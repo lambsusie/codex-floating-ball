@@ -1,6 +1,6 @@
-# macOS v1.2.0 构建说明
+# macOS v1.2.1 构建说明
 
-该目录是 Codex Floating Ball v1.2.0 的 macOS 发布源码，支持：
+该目录是 Codex Floating Ball v1.2.1 的 macOS 发布源码，支持：
 
 - Apple Silicon：`arm64`
 - Intel Mac：`x64`
@@ -14,6 +14,9 @@
 - 本机 tokens 日/周/月报告、后台定时统计、历史回溯和启动/唤醒补算
 - 历史曲线横轴滚轮缩放与同方向、等距离的左键拖动；右键无操作。无需先放大，可跨日期加载记录，纵轴保持 0–100%
 - 新的规整缺口环图标与 macOS 单色模板图标
+- 可自定义悬浮球默认打开额度概览、消耗曲线或消耗报告
+- 网格、横轴时间刻度与曲线同步平移和缩放，自适应刻度密度；10 分钟内仅显示分钟
+- 消耗曲线页面独立置顶，开启后切换其他窗口不自动收起；取消后恢复失焦收起
 
 本目录是构建源码，不是已经生成的 DMG；本次在 Windows 上完成开发，macOS 安装包需由下面的 GitHub Actions 或 Mac 本机生成，尚未做 Mac 实机验证。
 
@@ -31,8 +34,8 @@
 生成的文件名为：
 
 ```text
-Codex-Floating-Ball-1.2.0-mac-arm64.dmg
-Codex-Floating-Ball-1.2.0-mac-x64.dmg
+Codex-Floating-Ball-1.2.1-mac-arm64.dmg
+Codex-Floating-Ball-1.2.1-mac-x64.dmg
 ```
 
 ## 在 Mac 本机构建
@@ -52,7 +55,7 @@ npm run build:mac:x64
 
 ## 升级与本地数据
 
-从旧版本升级到 v1.2.0 不会删除设置或历史记录。macOS 数据保存在：
+从旧版本升级到 v1.2.1 不会删除设置或历史记录。macOS 数据保存在：
 
 ```text
 ~/Library/Application Support/codex-floating-ball/quota-history.ndjson
@@ -68,4 +71,4 @@ CSV 导出只读取本机历史文件，并写入用户在保存窗口中选择�
 
 ## English
 
-This source package builds unsigned Codex Floating Ball v1.2.0 DMGs for Apple Silicon (`arm64`) and Intel (`x64`). It adds local-token day/week/month reports, chart zoom/pan, and new tray icons while retaining the previous system theme, macOS material, and weekly-only quota support. Run the **Build macOS packages** GitHub Actions workflow, or run `npm ci && npm test && npm run build:mac` on a Mac. Each workflow artifact contains a DMG and its SHA-256 checksum. DMGs have not been built or hardware-tested on this Windows host.
+This source package builds unsigned Codex Floating Ball v1.2.1 DMGs for Apple Silicon (`arm64`) and Intel (`x64`). It adds a configurable default page, synchronized adaptive time grids, and independent chart pinning. Run the **Build macOS packages** GitHub Actions workflow, or run `npm ci && npm test && npm run build:mac` on a Mac. Each workflow artifact contains a DMG and its SHA-256 checksum. DMGs have not been built or hardware-tested on this Windows host.
