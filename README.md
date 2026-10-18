@@ -46,6 +46,17 @@ Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工
 
 ### 项目亮点
 
+#### v1.2.2：曲线页刷新控制与四套界面配色
+
+在消耗曲线右下角即可选择**手动、1、5、10、30、60 分钟**刷新间隔，与额度概览和设置同步，共用一个额度刷新计时器。智能启用进入低频或手动状态时，两处均显示实际间隔；选择分钟数可恢复活跃刷新并同步智能设置。图例与记录点数量保持可见，曲线置顶时也可操作。
+
+设置新增**经典蓝、青竹绿、玫瑰粉、石墨灰**四套配色，立即生效并在重启后保留，覆盖悬浮球、概览、曲线、报告和设置。每套配色均支持浅色、深色及跟随系统，告警颜色独立保留。Windows 继续使用不透明圆角面板，macOS 保留原生材质和降低透明度时的不透明回退。升级保留原有设置、额度历史与 tokens 报告。
+
+<p align="center">
+  <img src="docs/images/v1.2.2-chart-refresh-zh.png" alt="v1.2.2 曲线页刷新间隔控制与青竹绿配色，演示数据" width="520">
+  <img src="docs/images/v1.2.2-color-palettes-zh.png" alt="v1.2.2 四套配色设置，演示数据" width="520">
+</p>
+
 #### v1.2.1：默认页面、自适应刻度与曲线独立置顶
 
 在设置中选择单击悬浮球后打开**额度概览、消耗曲线或消耗报告**，选择会保存，默认仍为额度概览；双击仍刷新额度。
@@ -188,6 +199,8 @@ Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的
 
 ### 主要功能
 
+- 曲线页与概览共享刷新间隔控制，支持手动及 1／5／10／30／60 分钟，并同步智能刷新状态。
+- 经典蓝、青竹绿、玫瑰粉、石墨灰四套持久化配色，覆盖所有页面并支持浅色、深色和系统外观。
 - 可保存单击悬浮球默认打开的页面：额度概览、消耗曲线或消耗报告。
 - 曲线、时间网格和标签同步拖动，自适应时间刻度，以及不影响悬浮球置顶设置的曲线独立置顶。
 - 本机 tokens 日、周、月报告及历史日期选择，后台按北京时间日结，错过结算后自动补算。
@@ -356,6 +369,16 @@ The project follows a local-first approach:
 
 ### Highlights
 
+#### v1.2.2: chart refresh controls and four color palettes
+
+Choose **Manual, 1, 5, 10, 30, or 60 minutes** directly in the chart footer. The chart, overview, and settings stay synchronized and share one quota refresh timer. Both selectors reflect the actual active, idle, or manual smart-refresh state; choosing a positive interval resumes active refresh and updates its setting. Legends and record counts remain visible, including while the chart is pinned.
+
+Settings now offers **Classic blue, Jade green, Rose pink, and Graphite**. Palettes apply immediately, persist after restart, and coordinate the ball, overview, chart, reports, and settings. Each supports light, dark, and system-following appearance; warning colors remain independent. Opaque rounded Windows panels, native macOS materials, and the Reduce Transparency fallback are retained. Existing settings, quota history, and token reports remain intact when upgrading.
+
+<p align="center">
+  <img src="docs/images/v1.2.2-chart-refresh-en.png" alt="v1.2.2 chart refresh controls with the Rose pink dark palette, demo data" width="520">
+</p>
+
 #### v1.2.1: default page, adaptive ticks, and independent chart pinning
 
 Choose and save the page opened by a single click on the ball: **quota overview, usage chart, or usage reports**. The default remains the overview; double-click still refreshes quota.
@@ -495,6 +518,8 @@ This makes it easy both to answer “how long until reset?” at a glance and to
 
 ### Features
 
+- Synchronized chart/overview refresh selectors: Manual or 1/5/10/30/60 minutes, sharing one quota timer and smart-refresh state.
+- Four persisted palettes—Classic blue, Jade green, Rose pink, and Graphite—across all views, with light/dark/system appearance.
 - Save the default page opened by a single click: quota overview, usage chart, or usage reports.
 - Synchronized curve/grid/label panning, adaptive time ticks, and independent chart pinning without changing the ball's pin preference.
 - Daily, weekly, and monthly local-token reports with historical dates, Beijing-time settlement, and catch-up after downtime.

@@ -23,7 +23,7 @@ let quotaCalls = 0;
 quota.getQuota = async () => ({ fetchedAt: Date.now() + quotaCalls++, planType: "plus",
   primary: { remainingPercent: 68, usedPercent: 32, resetsAt: Date.now() + 3600000 },
   secondary: { remainingPercent: 32, usedPercent: 68, resetsAt: Date.now() + 86400000 } });
-require(path.join(target, "src/main/update-service")).checkForUpdate = async () => ({ updateAvailable: false, currentVersion: "1.2.1" });
+require(path.join(target, "src/main/update-service")).checkForUpdate = async () => ({ updateAvailable: false, currentVersion: "1.2.2" });
 let tray;
 const trayOn = Tray.prototype.on;
 Tray.prototype.on = function (name, listener) { if (name === "click") tray = this; return trayOn.call(this, name, listener); };
@@ -60,6 +60,49 @@ app.whenReady().then(async () => {
     assert.equal(report.sourceStatus, "ready");
     const js = (code) => window.webContents.executeJavaScript(code);
     const run = (code) => js(`(async () => { ${code} })()`);
+    const assertRefresh = async (minutes) => {
+      await until(async () => await js(`state.autoRefreshMinutes === ${minutes} && el.autoRefreshSelect.value === '${minutes}' && el.historyAutoRefreshSelect.value === '${minutes}'`));
+      assert.equal(await js("window.codexQuota.getAutoRefreshMinutes()"), minutes);
+      assert.equal(await js("Boolean(state.autoRefreshTimer)"), minutes > 0);
+    };
+    await js(`window.__refreshIntervals = new Set();
+      window.__originalSetInterval = window.setInterval;
+      window.__originalClearInterval = window.clearInterval;
+      window.setInterval = (callback, ms, ...args) => {
+        const id = window.__originalSetInterval(callback, ms, ...args);
+        if (ms >= 60000 && ms <= 3600000) window.__refreshIntervals.add(id);
+        return id;
+      };
+      window.clearInterval = (id) => { window.__refreshIntervals.delete(id); window.__originalClearInterval(id); }; void 0;`);
+    for (const control of ["autoRefreshSelect", "historyAutoRefreshSelect"]) {
+      for (const minutes of [1, 5, 10, 30, 60, 0]) {
+        await js(`el.${control}.value='${minutes}'; el.${control}.dispatchEvent(new Event('change'))`);
+        await assertRefresh(minutes);
+        assert.equal(await js("el.regularRefreshSelect.value"), String(minutes));
+        assert.equal(await js("window.__refreshIntervals.size"), minutes ? 1 : 0);
+      }
+    }
+    await run("await setSmartEnabled(true)");
+    await js("el.historyAutoRefreshSelect.value='5'; el.historyAutoRefreshSelect.dispatchEvent(new Event('change'))");
+    await assertRefresh(5);
+    assert.equal(await js("el.smartActiveRefreshSelect.value"), "5");
+    for (const idleMinutes of [30, 60, 0]) {
+      await run(`await activateSmartRefresh(); await setSmartIdleRefreshMinutes(${idleMinutes});
+        setSmartLastChangeAt(Date.now() - state.smartIdleMinutes * 60000 - 100);
+        await enterSmartIdleModeIfDue();`);
+      await assertRefresh(idleMinutes);
+      assert.equal(await js("state.smartMode"), idleMinutes ? "idle" : "manual");
+      assert.equal(await js("window.__refreshIntervals.size"), idleMinutes ? 1 : 0);
+      await js("el.historyAutoRefreshSelect.value='10'; el.historyAutoRefreshSelect.dispatchEvent(new Event('change'))");
+      await assertRefresh(10);
+      assert.equal(await js("state.smartMode"), "active");
+      assert.equal(await js("el.smartActiveRefreshSelect.value"), "10");
+    }
+    await js("el.historyAutoRefreshSelect.value='0'; el.historyAutoRefreshSelect.dispatchEvent(new Event('change'))");
+    await assertRefresh(0);
+    await run("await refreshQuota({userInitiated:true})");
+    await assertRefresh(10);
+    await run("await setSmartEnabled(false); await setRegularRefreshMinutes(0); setPalette('jade')");
     assert.equal(await js("state.defaultDetailView"), "main");
     for (const view of ["history", "reports", "main"]) {
       await run(`setDefaultDetailView('${view}'); await setWindowMode('compact'); el.compactBall.click();`);
@@ -76,6 +119,8 @@ app.whenReady().then(async () => {
     await new Promise((resolve) => { window.webContents.once("did-finish-load", resolve); window.webContents.reload(); });
     await until(async () => await js("state.lastQuota && state.view === 'history'"));
     assert.equal(await js("state.defaultDetailView"), "history", "Default page survives renderer restart");
+    assert.equal(await js("state.palette"), "jade", "Palette survives renderer restart");
+    assert.equal(await js("document.body.dataset.palette"), "jade");
     for (const ballPinned of [true, false]) {
       await run(`await window.codexQuota.setAlwaysOnTop(${ballPinned}); await setWindowMode('detail'); updateDetailView('history');`);
       await run("await window.codexQuota.setDetailView('history'); el.historyPinBtn.click()");
@@ -121,6 +166,7 @@ app.whenReady().then(async () => {
     }
     assert.deepEqual(errors, []);
     console.log(JSON.stringify({ source: target.includes("app.asar") ? "packaged-asar" : "source", reports: true,
+      refreshEntrances: 2, refreshIntervals: 6, smartIdleTransitions: 3, singleRefreshTimer: true, palettePersisted: true,
       defaultPages: 3, defaultPagePersisted: true, doubleClickRefresh: true, independentChartPin: true, blurCollapseRestored: true,
       taskbarCloseCollapsed: true, trayRecreatedDestroyedWindow: true, shellRecovery: shellCallbacks > 0, trayStates: 4, errors }));
     app.quit();

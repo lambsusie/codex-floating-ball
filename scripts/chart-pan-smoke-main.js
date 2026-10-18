@@ -7,7 +7,7 @@ const scale = process.env.CFB_TEST_SCALE || "1";
 app.commandLine.appendSwitch("force-device-scale-factor", scale);
 app.setPath("userData", fs.mkdtempSync(path.join(os.tmpdir(), `floating-ball-pan-v121-${scale}-`)));
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const output = path.join(__dirname, "../qa-v1.2.1");
+const output = path.join(__dirname, "../qa-v1.2.2");
 app.whenReady().then(async () => {
   const window = new BrowserWindow({ width: 520, height: 360, frame: false, show: false, skipTaskbar: true,
     webPreferences: { preload: path.join(__dirname, "visual-smoke-preload.js"), contextIsolation: true } });

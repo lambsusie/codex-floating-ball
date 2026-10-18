@@ -61,7 +61,7 @@ contextBridge.exposeInMainWorld("codexQuota", {
   recordHistory: async () => null,
   getHistory: async (range) => getHistory(range),
   exportHistory: async () => ({ canceled: false, recordCount: 42, filePath: "C:\\Temp\\quota.csv" }),
-  getAppVersion: async () => "1.2.1",
+  getAppVersion: async () => "1.2.2",
   setTrayState: async () => {},
   onReportUpdated: () => {},
   refreshReports: async () => {},

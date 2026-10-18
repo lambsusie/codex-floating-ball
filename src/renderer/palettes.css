@@ -1,0 +1,242 @@
+body[data-palette] {
+  --palette-panel: #f7faff;
+  --palette-surface: #ffffff;
+  --palette-control: #f4f8ff;
+  --palette-border: #d8e3ef;
+  --palette-text: #172033;
+  --palette-muted: #526070;
+  --palette-accent: #1762bf;
+  --palette-selected: #e1efff;
+  --palette-grid: #dfe5ee;
+  --chart-primary: #2563eb;
+  --chart-secondary: #c13956;
+  --orb-base: #f1f7ff;
+  --orb-text: #14213a;
+  --orb-muted: #263951;
+  --fill-top: #75ddff;
+  --fill-bottom: #5998f5;
+  color: var(--palette-text);
+}
+
+body[data-palette="jade"] {
+  --palette-panel: #f2faf7;
+  --palette-control: #eff8f4;
+  --palette-border: #cddfd7;
+  --palette-text: #192f2a;
+  --palette-muted: #4d665e;
+  --palette-accent: #096b56;
+  --palette-selected: #d7f1e6;
+  --palette-grid: #dce8e2;
+  --chart-primary: #0d806a;
+  --chart-secondary: #b64b89;
+  --orb-base: #effbf6;
+  --fill-top: #a3eed2;
+  --fill-bottom: #48c3a2;
+}
+
+body[data-palette="rose"] {
+  --palette-panel: #fff6f8;
+  --palette-control: #fff1f5;
+  --palette-border: #ead4dd;
+  --palette-text: #39232d;
+  --palette-muted: #755462;
+  --palette-accent: #ab2856;
+  --palette-selected: #fce0e9;
+  --palette-grid: #efdfe6;
+  --chart-primary: #b93665;
+  --chart-secondary: #287baf;
+  --orb-base: #fff2f6;
+  --fill-top: #ffd2e1;
+  --fill-bottom: #f08aac;
+}
+
+body[data-palette="graphite"] {
+  --palette-panel: #f6f7f9;
+  --palette-control: #eef1f5;
+  --palette-border: #d7dce3;
+  --palette-text: #252b34;
+  --palette-muted: #58616e;
+  --palette-accent: #3c526b;
+  --palette-selected: #dfe6ee;
+  --palette-grid: #e0e4e9;
+  --chart-primary: #475569;
+  --chart-secondary: #087f8c;
+  --orb-base: #f2f5f8;
+  --fill-top: #d1dde8;
+  --fill-bottom: #99acbf;
+}
+
+body[data-palette][data-theme="dark"] {
+  --palette-panel: #1c222b;
+  --palette-surface: #252e39;
+  --palette-control: #293440;
+  --palette-border: #424d5b;
+  --palette-text: #eef4f8;
+  --palette-muted: #b5c1ce;
+  --palette-accent: #9dc8ff;
+  --palette-selected: #314c70;
+  --palette-grid: #414c59;
+  --chart-primary: #8cb8ff;
+  --chart-secondary: #ff9bb0;
+  --orb-base: #273441;
+  --orb-text: #ffffff;
+  --orb-muted: #edf5ff;
+  --fill-top: #24668f;
+  --fill-bottom: #21489a;
+}
+
+body[data-palette="jade"][data-theme="dark"] {
+  --palette-panel: #1b2421;
+  --palette-surface: #25322d;
+  --palette-control: #2a3932;
+  --palette-border: #41574c;
+  --palette-muted: #b4c8be;
+  --palette-accent: #8ce1bd;
+  --palette-selected: #234f3d;
+  --palette-grid: #3e5147;
+  --chart-primary: #69dec0;
+  --chart-secondary: #f0a3d2;
+  --orb-base: #253b32;
+  --fill-top: #176653;
+  --fill-bottom: #164d42;
+}
+
+body[data-palette="rose"][data-theme="dark"] {
+  --palette-panel: #292027;
+  --palette-surface: #352b34;
+  --palette-control: #3c2e38;
+  --palette-border: #5c4453;
+  --palette-muted: #d2b8c5;
+  --palette-accent: #ffacca;
+  --palette-selected: #65354b;
+  --palette-grid: #54424d;
+  --chart-primary: #ff9aba;
+  --chart-secondary: #7bd2f5;
+  --orb-base: #402b38;
+  --fill-top: #963752;
+  --fill-bottom: #662443;
+}
+
+body[data-palette="graphite"][data-theme="dark"] {
+  --palette-panel: #202226;
+  --palette-surface: #2b2e33;
+  --palette-control: #33373e;
+  --palette-border: #50565f;
+  --palette-muted: #bcc4ce;
+  --palette-accent: #dae5f2;
+  --palette-selected: #465362;
+  --palette-grid: #484e56;
+  --chart-primary: #d7e0eb;
+  --chart-secondary: #69d8dd;
+  --orb-base: #333c46;
+  --fill-top: #526172;
+  --fill-bottom: #344252;
+}
+
+body[data-palette] .detail-panel {
+  background: var(--palette-panel);
+  border-color: var(--palette-border);
+  box-shadow: none;
+}
+
+body[data-palette] .ambient { display: none; }
+
+body[data-palette] :is(.quota-card, .settings-row, .history-chart-shell) {
+  color: var(--palette-text);
+  background: var(--palette-surface);
+  border-color: var(--palette-border);
+}
+
+body[data-palette] :is(.brand-state, .quota-card span, .status, .auto-refresh,
+  .settings-header span, .settings-row span, .settings-hint, .history-header span,
+  .history-legend, .history-empty, .report-note, .report-notice, .report-total span,
+  .report-breakdown dt, .period-button, .update-status-copy small) {
+  color: var(--palette-muted);
+}
+
+body[data-palette] :is(.quota-card strong, .settings-header strong, .history-navigator strong) {
+  color: var(--palette-text);
+  text-shadow: none;
+}
+
+body[data-palette] :is(.icon-button, .text-button, .auto-refresh select, .settings-row select,
+  .history-metric-control select, .history-periods, .history-nav-button, .report-navigator input) {
+  color: var(--palette-text);
+  background: var(--palette-control);
+  border-color: var(--palette-border);
+}
+
+body[data-palette] :is(.icon-button.active, .period-button.active, .settings-action-button) {
+  color: var(--palette-accent);
+  background: var(--palette-selected);
+  border-color: var(--palette-border);
+}
+
+body[data-palette] :is(.settings-range-row output, .smart-status-row strong) {
+  color: var(--palette-accent);
+}
+
+body[data-palette] input[type="range"] { accent-color: var(--palette-accent); }
+body[data-palette] .settings-toggle:checked {
+  background: var(--palette-accent);
+  border-color: var(--palette-accent);
+}
+body[data-palette][data-theme="dark"] .settings-toggle:checked::after { background: #19212a; }
+body[data-palette] :is(button, select, input):focus-visible {
+  outline: 2px solid var(--palette-accent);
+  outline-offset: 2px;
+}
+
+body[data-palette] .history-tooltip {
+  color: var(--palette-text);
+  background: var(--palette-surface);
+  border-color: var(--palette-border);
+}
+body[data-palette] .legend-primary,
+body[data-palette] .history-tooltip span::before { background: var(--chart-primary); }
+body[data-palette] .legend-secondary,
+body[data-palette] .history-tooltip span:last-child::before { background: var(--chart-secondary); }
+body[data-palette] :is(.report-breakdown, .report-table th, .report-table td) { border-color: var(--palette-border); }
+
+body[data-palette] :is(.compact-orb-surface, .liquid-meter) { background: var(--orb-base); }
+body[data-palette] :is(.compact-open, .compact-open span, .meter-copy, .meter-copy span) {
+  color: var(--orb-text);
+  text-shadow: none;
+}
+body[data-palette] :is(.compact-open span, .meter-copy span) { color: var(--orb-muted); }
+body[data-palette][data-state="ok"] :is(.compact-liquid-fill, .liquid-fill) {
+  background: linear-gradient(180deg, var(--fill-top), var(--fill-bottom));
+}
+
+/* Keep warning and error colors independent of the decorative palette. */
+body[data-palette]:is([data-state="warning"], [data-state="empty"], [data-state="error"], [data-state="loading"]) {
+  --orb-base: #fff4f1;
+  --orb-text: #172033;
+  --orb-muted: #263951;
+}
+
+.palette-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 304px; }
+.palette-choice { position: relative; display: grid; justify-items: center; align-content: start; gap: 5px; min-width: 0; cursor: pointer; }
+.palette-choice input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.settings-row .palette-name { font-size: 10px; line-height: 14px; text-align: center; font-weight: 600; }
+.palette-swatch { display: block; width: 32px; height: 26px; border: 1px solid #0002; border-radius: 6px; }
+.swatch-blue { background: #77b8ff; }
+.swatch-jade { background: #67cfad; }
+.swatch-rose { background: #f49ebd; }
+.swatch-graphite { background: #a6b5c7; }
+.palette-choice input:checked + .palette-swatch { outline: 2px solid var(--palette-accent); outline-offset: 2px; }
+.palette-choice input:checked + .palette-swatch::after { display: grid; height: 100%; place-items: center; color: #172033; content: "\2713"; font-weight: 700; font-size: 16px; }
+.palette-choice input:focus-visible + .palette-swatch { outline: 2px dashed var(--palette-accent); outline-offset: 3px; }
+
+body[data-palette][data-platform="darwin"][data-glass="true"] .detail-panel {
+  background: color-mix(in srgb, var(--palette-panel) 58%, transparent);
+}
+body[data-palette][data-platform="darwin"][data-glass="true"] :is(.quota-card, .settings-row, .history-chart-shell) {
+  background: color-mix(in srgb, var(--palette-surface) 44%, transparent);
+}
+body[data-palette][data-platform="darwin"][data-glass="true"][data-theme="dark"] .detail-panel {
+  background: color-mix(in srgb, var(--palette-panel) 72%, transparent);
+}
+body[data-palette][data-platform="darwin"][data-glass="true"][data-theme="dark"] :is(.quota-card, .settings-row, .history-chart-shell) {
+  background: color-mix(in srgb, var(--palette-surface) 56%, transparent);
+}
