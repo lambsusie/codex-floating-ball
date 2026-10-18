@@ -6,6 +6,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'" />
     <title>Codex LED Widget</title>
     <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./palettes.css" />
   </head>
   <body data-state="loading" data-mode="compact" data-view="main" data-theme="light" data-theme-source="system" data-platform="win32" data-glass="false" data-quota-mode="dual">
     <main id="widget" class="widget">
@@ -161,6 +162,31 @@
               <span id="autoUpdateSettingLabel">自动检查更新</span>
               <input id="autoUpdateToggle" class="settings-toggle" type="checkbox" role="switch" aria-label="自动检查更新" />
             </label>
+            <div class="settings-row palette-row" role="group" aria-labelledby="paletteSettingLabel">
+              <span id="paletteSettingLabel">配色</span>
+              <div class="palette-options">
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="blue" aria-label="经典蓝" />
+                  <span class="palette-swatch swatch-blue" aria-hidden="true"></span>
+                  <span class="palette-name">经典蓝</span>
+                </label>
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="jade" aria-label="青竹绿" />
+                  <span class="palette-swatch swatch-jade" aria-hidden="true"></span>
+                  <span class="palette-name">青竹绿</span>
+                </label>
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="rose" aria-label="玫瑰粉" />
+                  <span class="palette-swatch swatch-rose" aria-hidden="true"></span>
+                  <span class="palette-name">玫瑰粉</span>
+                </label>
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="graphite" aria-label="石墨灰" />
+                  <span class="palette-swatch swatch-graphite" aria-hidden="true"></span>
+                  <span class="palette-name">石墨灰</span>
+                </label>
+              </div>
+            </div>
             <label class="settings-row default-view-row">
               <span id="defaultDetailViewLabel">悬浮球默认打开页面</span>
               <select id="defaultDetailViewSelect" aria-label="悬浮球默认打开页面">
@@ -344,6 +370,17 @@
             <span id="historyPrimaryLegendItem"><i class="legend-primary"></i><span id="historyPrimaryLegend">5小时已用</span></span>
             <span id="historySecondaryLegendItem"><i class="legend-secondary"></i><span id="historySecondaryLegend">7天已用</span></span>
             <span id="historyPointCount">0 个记录点</span>
+            <label class="auto-refresh history-refresh">
+              <span id="historyAutoRefreshLabel">自动刷新</span>
+              <select id="historyAutoRefreshSelect" aria-label="自动刷新">
+                <option value="0">手动</option>
+                <option value="1">1分钟</option>
+                <option value="5">5分钟</option>
+                <option value="10">10分钟</option>
+                <option value="30">30分钟</option>
+                <option value="60">60分钟</option>
+              </select>
+            </label>
           </div>
         </section>
         <section id="reportsPanel" class="reports-panel" hidden>

@@ -4,7 +4,7 @@ const path = require("node:path");
 const os = require("node:os");
 const assert = require("node:assert/strict");
 const { attachWindowLifecycle } = require("../src/main/window-lifecycle");
-const output = path.join(__dirname, "../qa-v1.2.1/regression");
+const output = path.join(__dirname, "../qa-v1.2.2/regression");
 app.setPath("userData", fs.mkdtempSync(path.join(os.tmpdir(), "codex-floating-ball-v121-regression-")));
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 app.whenReady().then(async () => {
@@ -18,7 +18,8 @@ app.whenReady().then(async () => {
   try {
     await window.loadFile(path.join(__dirname, "../src/renderer/index.html"));
     await wait(400);
-    await js("localStorage.setItem('codex-led-auto-check-updates','false'); setAutoCheckUpdates(false); setLanguage('zh'); updateDetailView('history');");
+    // Use a complete historical fixture day so the result does not depend on time of day.
+    await js("localStorage.setItem('codex-led-auto-check-updates','false'); setAutoCheckUpdates(false); setLanguage('zh'); state.historyAnchor = new Date(Date.now() - 86400000); updateDetailView('history');");
     await wait(150);
     const before = await js("getPeriodRange(state.historyPeriod,state.historyAnchor)");
     window.webContents.sendInputEvent({ type: "mouseMove", x: 290, y: 220 });
@@ -38,7 +39,7 @@ app.whenReady().then(async () => {
     const panned = await js("state.historyViewport");
     assert.ok(panned.start !== zoom.start);
     assert.equal(await js("JSON.stringify(state.historyPlot)"), plotBefore);
-    await js(`(() => { const r=el.historyChart.getBoundingClientRect();const p=state.historyChartPoints[0]; if(p) el.historyChart.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+p.x,clientY:r.top+p.primaryY})); })()`);
+    await js(`(() => { const r=el.historyChart.getBoundingClientRect(),plot=state.historyPlot;const p=state.historyChartPoints.find(point=>point.x>plot.left+10 && point.x<plot.right-10 && point.primaryY>plot.top && point.primaryY<plot.bottom); if(!p) throw new Error('No interior fixture point for tooltip check'); el.historyChart.dispatchEvent(new PointerEvent('pointermove',{clientX:r.left+p.x,clientY:r.top+p.primaryY})); })()`);
     assert.equal(await js("el.historyTooltip.hidden"), false);
     await capture("01-history-zoom-light");
     const visiblePoints = await js("state.historyChartPoints.length");

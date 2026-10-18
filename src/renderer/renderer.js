@@ -22,6 +22,11 @@ const labels = {
     themeSystem: "跟随系统",
     themeLight: "浅色",
     themeDark: "深色",
+    palette: "配色",
+    paletteBlue: "经典蓝",
+    paletteJade: "青竹绿",
+    paletteRose: "玫瑰粉",
+    paletteGraphite: "石墨灰",
     defaultDetailView: "悬浮球默认打开页面",
     viewMain: "额度概览",
     viewHistory: "消耗曲线",
@@ -119,6 +124,11 @@ const labels = {
     themeSystem: "Follow system",
     themeLight: "Light",
     themeDark: "Dark",
+    palette: "Palette",
+    paletteBlue: "Classic blue",
+    paletteJade: "Jade green",
+    paletteRose: "Rose pink",
+    paletteGraphite: "Graphite",
     defaultDetailView: "Open from floating ball",
     viewMain: "Quota overview",
     viewHistory: "Usage chart",
@@ -208,6 +218,7 @@ const DEFAULT_SMART_IDLE_MINUTES = 30;
 const DEFAULT_SMART_IDLE_REFRESH_MINUTES = 0;
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const HISTORY_METRICS = new Set(["used", "remaining"]);
+const PALETTE_LABELS = { blue: "paletteBlue", jade: "paletteJade", rose: "paletteRose", graphite: "paletteGraphite" };
 const TIME_DISPLAY_MODES = new Set(["duration", "point"]);
 const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = window.smartRefreshUtils;
 const { buildQuotaSeries, getTimeAxis, getPeriodRange, shiftPeriod,
@@ -216,6 +227,7 @@ const { buildQuotaSeries, getTimeAxis, getPeriodRange, shiftPeriod,
 const state = {
   lang: getStoredLanguage(),
   themeSource: getStoredThemeSource(),
+  palette: getStoredPalette(),
   theme: "light",
   platform: "win32",
   glassEnabled: false,
@@ -293,6 +305,10 @@ const el = {
   statusText: document.getElementById("statusText"),
   autoRefreshLabel: document.getElementById("autoRefreshLabel"),
   autoRefreshSelect: document.getElementById("autoRefreshSelect"),
+  historyAutoRefreshLabel: document.getElementById("historyAutoRefreshLabel"),
+  historyAutoRefreshSelect: document.getElementById("historyAutoRefreshSelect"),
+  paletteSettingLabel: document.getElementById("paletteSettingLabel"),
+  paletteInputs: Array.from(document.querySelectorAll('input[name="palette"]')),
   settingsPanel: document.getElementById("settingsPanel"),
   settingsBackBtn: document.getElementById("settingsBackBtn"),
   settingsTitle: document.getElementById("settingsTitle"),
@@ -386,6 +402,18 @@ function getStoredThemeSource() {
   return value === "light" || value === "dark" ? value : "system";
 }
 
+function getStoredPalette() {
+  const value = localStorage.getItem("codex-led-palette");
+  return Object.hasOwn(PALETTE_LABELS, value) ? value : "blue";
+}
+
+function setPalette(value) {
+  state.palette = Object.hasOwn(PALETTE_LABELS, value) ? value : "blue";
+  localStorage.setItem("codex-led-palette", state.palette);
+  applyTheme();
+  updateSettingsControls();
+}
+
 function getStoredDefaultDetailView() {
   const value = localStorage.getItem("codex-led-default-detail-view");
   return ["history", "reports"].includes(value) ? value : "main";
@@ -450,6 +478,15 @@ function applyLabels() {
   el.planLabel.textContent = t("plan");
   el.autoRefreshLabel.textContent = t("autoRefresh");
   el.autoRefreshSelect.setAttribute("aria-label", t("autoRefresh"));
+  el.historyAutoRefreshLabel.textContent = t("autoRefresh");
+  el.historyAutoRefreshSelect.setAttribute("aria-label", t("autoRefresh"));
+  el.paletteSettingLabel.textContent = t("palette");
+  for (const input of el.paletteInputs) {
+    const name = t(PALETTE_LABELS[input.value]);
+    input.setAttribute("aria-label", name);
+    input.closest("label").title = name;
+    input.closest("label").querySelector(".palette-name").textContent = name;
+  }
   updateAutoRefreshOptions();
   updateSettingsControls();
   el.historyBtn.title = t("history");
@@ -527,6 +564,7 @@ function applyLabels() {
 }
 
 function updateSettingsControls() {
+  el.paletteInputs.forEach((input) => { input.checked = input.value === state.palette; });
   el.defaultDetailViewSelect.value = state.defaultDetailView;
   for (const [value, key] of Object.entries({ main: "viewMain", history: "viewHistory", reports: "viewReports" })) {
     el.defaultDetailViewSelect.querySelector(`[value="${value}"]`).textContent = t(key);
@@ -580,16 +618,18 @@ function formatUpdateStatus() {
 }
 
 function updateAutoRefreshOptions() {
-  for (const select of [el.autoRefreshSelect, el.regularRefreshSelect, el.smartActiveRefreshSelect, el.smartIdleRefreshSelect]) {
+  for (const select of [el.autoRefreshSelect, el.historyAutoRefreshSelect, el.regularRefreshSelect, el.smartActiveRefreshSelect, el.smartIdleRefreshSelect]) {
     for (const option of select.options) {
       const minutes = Number(option.value);
       option.textContent = formatRefreshMinutes(minutes);
     }
   }
   const displayedMinutes = getDisplayedRefreshMinutes(state);
-  el.autoRefreshSelect.value = String(displayedMinutes);
-  el.autoRefreshSelect.disabled = false;
-  el.autoRefreshSelect.title = state.smartEnabled ? t("smartActiveRefresh") : t("autoRefresh");
+  for (const select of [el.autoRefreshSelect, el.historyAutoRefreshSelect]) {
+    select.value = String(displayedMinutes);
+    select.disabled = false;
+    select.title = state.smartEnabled ? t("smartActiveRefresh") : t("autoRefresh");
+  }
 }
 
 function formatRefreshMinutes(minutes) {
@@ -660,6 +700,7 @@ function updateDetailView(view) {
 }
 
 function applyTheme() {
+  el.body.dataset.palette = state.palette;
   el.body.dataset.theme = state.theme;
   el.body.dataset.themeSource = state.themeSource;
   el.body.dataset.platform = state.platform;
@@ -791,6 +832,7 @@ async function exportHistoryRecords() {
 function showHistoryFooterMessage(message, resetAfter = 0) {
   if (historyExportStatusTimer) clearTimeout(historyExportStatusTimer);
   el.historyPointCount.textContent = message;
+  el.historyPointCount.title = message;
   if (resetAfter > 0) {
     historyExportStatusTimer = setTimeout(() => {
       historyExportStatusTimer = undefined;
@@ -818,6 +860,7 @@ function updateHistoryPeriodControls() {
   const viewport = state.historyViewport || range;
   const count = state.historyRecords.filter((record) => record.timestamp >= viewport.start && record.timestamp < viewport.end).length;
   el.historyPointCount.textContent = t("historyPoints").replace("{count}", String(count));
+  el.historyPointCount.title = el.historyPointCount.textContent;
 }
 
 function getHistoryViewport() {
@@ -910,12 +953,13 @@ function drawHistoryChart() {
   const range = state.historyViewport || getPeriodRange(state.historyPeriod, state.historyAnchor);
   const series = visibleSeries(buildQuotaSeries(state.historyRecords, state.historyMetric), range);
   updateHistorySeriesVisibility();
-  const dark = state.theme === "dark";
+  const colors = getComputedStyle(el.body);
+  const axisColor = colors.getPropertyValue("--palette-muted").trim();
   const plot = { left: 38, top: 10, right: rect.width - 10, bottom: rect.height - 34 };
   state.historyPlot = plot;
   const plotWidth = Math.max(1, plot.right - plot.left);
   const plotHeight = Math.max(1, plot.bottom - plot.top);
-  const gridColor = dark ? "rgba(148,163,184,.15)" : "rgba(71,85,105,.12)";
+  const gridColor = colors.getPropertyValue("--palette-grid").trim();
 
   ctx.font = '10px "Segoe UI", sans-serif';
   const axis = getTimeAxis(range, plotWidth, state.lang, (text) => ctx.measureText(text).width);
@@ -931,7 +975,7 @@ function drawHistoryChart() {
     ctx.moveTo(plot.left, y);
     ctx.lineTo(plot.right, y);
     ctx.stroke();
-    ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
+    ctx.fillStyle = axisColor;
     ctx.fillText(`${percent}%`, plot.left - 5, y);
   }
 
@@ -949,7 +993,7 @@ function drawHistoryChart() {
     ctx.lineTo(x, plot.bottom);
     ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.fillStyle = dark ? "#94a3b8" : "#7b8494";
+    ctx.fillStyle = axisColor;
     const labelWidth = Math.max(0, ...label.map((line) => ctx.measureText(line).width));
     if (x - labelWidth / 2 >= plot.left && x + labelWidth / 2 <= plot.right) {
       label.forEach((line, index) => ctx.fillText(line, x, plot.bottom + 6 + index * 11));
@@ -957,8 +1001,8 @@ function drawHistoryChart() {
   });
   ctx.restore();
 
-  drawSeries(ctx, series, "primaryValue", "#2563eb", range, plot);
-  drawSeries(ctx, series, "secondaryValue", "#ef5c68", range, plot);
+  drawSeries(ctx, series, "primaryValue", colors.getPropertyValue("--chart-primary").trim(), range, plot);
+  drawSeries(ctx, series, "secondaryValue", colors.getPropertyValue("--chart-secondary").trim(), range, plot);
   const yFor = (value) => plot.bottom - (value / 100) * plotHeight;
   state.historyChartPoints = series.filter((point) => point.timestamp >= range.start && point.timestamp <= range.end).map((point) => ({
     ...point,
@@ -1668,6 +1712,9 @@ window.addEventListener("blur", endHistoryPan);
 el.historyChart.addEventListener("mouseleave", hideHistoryTooltip);
 el.languageSelect.addEventListener("change", () => setLanguage(el.languageSelect.value));
 el.themeSelect.addEventListener("change", () => void setTheme(el.themeSelect.value));
+el.paletteInputs.forEach((input) => input.addEventListener("change", () => {
+  if (input.checked) setPalette(input.value);
+}));
 el.defaultDetailViewSelect.addEventListener("change", () => setDefaultDetailView(el.defaultDetailViewSelect.value));
 el.autoUpdateToggle.addEventListener("change", () => setAutoCheckUpdates(el.autoUpdateToggle.checked));
 el.checkUpdateBtn.addEventListener("click", handleUpdateAction);
@@ -1696,9 +1743,9 @@ el.closeBtn.addEventListener("click", () => window.codexQuota.close());
 el.pinBtn.addEventListener("click", async () => {
   updatePinButton(await window.codexQuota.setAlwaysOnTop(!state.alwaysOnTop));
 });
-el.autoRefreshSelect.addEventListener("change", () => {
-  void setMainAutoRefreshMinutes(el.autoRefreshSelect.value);
-});
+for (const select of [el.autoRefreshSelect, el.historyAutoRefreshSelect]) {
+  select.addEventListener("change", () => void setMainAutoRefreshMinutes(select.value));
+}
 
 window.codexQuota.onRefresh(() => refreshQuota({ userInitiated: true }));
 window.codexQuota.onAlwaysOnTopChanged(updatePinButton);
