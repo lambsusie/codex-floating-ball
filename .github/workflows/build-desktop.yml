@@ -1,0 +1,61 @@
+name: Build lightweight desktop beta
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+            label: windows-x64
+          - os: macos-15
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+            label: mac-arm64
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+            label: mac-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Set up Rust
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+      - run: npm ci
+      - run: npm test
+      - name: Native tests
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+      - name: Build package
+        run: npm run build -- --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+      - name: Check macOS bundle integrity
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          app="src-tauri/target/${{ matrix.target }}/release/bundle/macos/Codex Floating Ball.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -d --verbose=2 "$app"
+          find "src-tauri/target/${{ matrix.target }}/release/bundle/dmg" -name '*.dmg' -exec shasum -a 256 {} \;
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Codex-Floating-Ball-2.0.0-beta.1-${{ matrix.label }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe
+            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+          retention-days: 14

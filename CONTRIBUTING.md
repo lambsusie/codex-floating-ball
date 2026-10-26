@@ -39,20 +39,20 @@ For a feature request, explain:
 
 Requirements:
 
-- Node.js and npm.
-- Windows 10/11 or macOS 12+ for platform-specific testing.
+- Node.js 24, npm, Rust stable and the platform Tauri build prerequisites.
+- Windows 10/11, C++ Build Tools, Windows SDK and WebView2 for this beta. macOS source is experimental; no Mac package is published with this release.
 - A locally installed and signed-in Codex CLI or Codex desktop environment for quota-related functionality.
 
 Install dependencies:
 
 ```bash
-npm install
+npm ci
 ```
 
-Start the app:
+Build the Windows installer and executable:
 
 ```bash
-npm start
+npm run build
 ```
 
 Run tests:
@@ -61,16 +61,16 @@ Run tests:
 npm test
 ```
 
-Build Windows:
+Run native tests:
 
 ```powershell
-npm run build:win
+cargo test --locked --manifest-path src-tauri/Cargo.toml
 ```
 
 Build macOS:
 
 ```bash
-npm run build:mac
+npm run build -- --bundles app,dmg
 ```
 
 ## Pull request workflow

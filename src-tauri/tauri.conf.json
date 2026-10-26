@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Codex Floating Ball",
+  "version": "2.0.0-beta.1",
+  "identifier": "io.github.lambsusie.codexfloatingball.v2",
+  "build": { "frontendDist": "../ui" },
+  "app": { "withGlobalTauri": true, "macOSPrivateApi": true, "windows": [], "security": {
+    "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; worker-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'"
+  } },
+  "bundle": {
+    "active": true, "targets": ["nsis"], "icon": ["icons/icon.ico", "icons/icon.icns", "icons/tray.png"],
+    "publisher": "lambsusie", "copyright": "Derived from codex-led-widget; MIT license",
+    "windows": { "webviewInstallMode": { "type": "downloadBootstrapper", "silent": true }, "nsis": { "installMode": "currentUser", "languages": ["SimpChinese", "English"], "compression": "lzma" } },
+    "macOS": { "minimumSystemVersion": "11.0", "signingIdentity": "-" }
+  }
+}

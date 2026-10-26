@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { zoomViewport, panViewport, bufferedHistoryRange, containsRange, isInsidePlot, visibleSeries } = require("../src/renderer/history-utils");
+const { zoomViewport, panViewport, bufferedHistoryRange, containsRange, isInsidePlot, visibleSeries } = require("../ui/history-utils");
 test("wheel zoom anchors the pointer and limits span without clamping the date", () => {
   const bounds = { start: 100000, end: 18100000 };
   const zoomed = zoomViewport(bounds, bounds, 0.25, -240);
