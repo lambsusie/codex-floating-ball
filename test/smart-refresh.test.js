@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = require("../src/renderer/smart-refresh");
+const { getQuotaUsageFingerprint, getDisplayedRefreshMinutes } = require("../ui/smart-refresh");
 
 test("quota fingerprint ignores reset-time-only changes", () => {
   const before = {

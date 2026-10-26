@@ -1,93 +1,12 @@
 {
   "name": "codex-floating-ball",
-  "version": "1.2.2",
-  "description": "A customizable Windows and macOS floating widget for monitoring local Codex usage quota.",
-  "main": "src/main/main.js",
-  "author": "lambsusie and contributors",
+  "version": "2.0.0-beta.1",
+  "private": true,
   "license": "MIT",
-  "private": false,
-  "homepage": "https://github.com/lambsusie/codex-floating-ball",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/lambsusie/codex-floating-ball.git"
-  },
-  "bugs": {
-    "url": "https://github.com/lambsusie/codex-floating-ball/issues"
-  },
   "scripts": {
-    "dev": "electron .",
-    "start": "electron .",
-    "test": "node --test",
-    "test:visual": "electron scripts/visual-smoke-main.js",
-    "test:compact-edge": "electron scripts/compact-edge-smoke-main.js",
-    "test:detail-surface": "electron scripts/detail-surface-smoke-main.js",
-    "test:v120": "electron scripts/v120-smoke-main.js",
-    "test:v121": "electron scripts/v121-smoke-main.js",
-    "test:v122": "electron scripts/v122-smoke-main.js",
-    "test:integration": "electron scripts/main-integration-smoke.js",
-    "build": "npm run build:win",
-    "build:win": "set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable",
-    "build:mac": "npm run build:mac:arm64 && npm run build:mac:x64",
-    "build:mac:arm64": "electron-builder --mac dmg --arm64 --publish never",
-    "build:mac:x64": "electron-builder --mac dmg --x64 --publish never",
-    "build:dir": "electron-builder --dir"
+    "prepare:core": "node scripts/extract-report-core.cjs",
+    "build": "tauri build",
+    "test": "node --test test/*.test.js test/*.test.cjs"
   },
-  "build": {
-    "appId": "io.github.lambsusie.codexfloatingball",
-    "productName": "Codex Floating Ball",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "src/**/*",
-      "assets/icon.ico",
-      "assets/tray-icon.png",
-      "assets/tray-*.ico",
-      "assets/tray-*.png",
-      "assets/icon.icns",
-      "assets/trayTemplate.png",
-      "assets/trayTemplate@2x.png",
-      "package.json"
-    ],
-    "win": {
-      "icon": "assets/icon.ico",
-      "signAndEditExecutable": false,
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "portable": {
-      "artifactName": "Codex-Floating-Ball-${version}-win-x64.exe"
-    },
-    "mac": {
-      "icon": "assets/icon.icns",
-      "category": "public.app-category.utilities",
-      "identity": null,
-      "hardenedRuntime": false,
-      "extendInfo": {
-        "LSUIElement": true
-      },
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
-    },
-    "dmg": {
-      "artifactName": "Codex-Floating-Ball-${version}-mac-${arch}.${ext}"
-    }
-  },
-  "devDependencies": {
-    "electron": "^31.7.7",
-    "electron-builder": "^24.13.3"
-  }
+  "devDependencies": { "@tauri-apps/cli": "2.12.4" }
 }

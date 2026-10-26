@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex Floating Ball</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./palettes.css" />
+  </head>
+  <body data-state="loading" data-mode="compact" data-view="main" data-theme="light" data-theme-source="system" data-platform="win32" data-glass="false" data-quota-mode="dual">
+    <main id="widget" class="widget">
+      <section class="compact-widget" aria-label="Codex 5小时额度">
+        <div id="weeklyWarning" class="weekly-warning" hidden>
+          <div class="weekly-orb">
+            <strong id="weeklyRemaining">--%</strong>
+            <span id="weeklyLabel">周额度</span>
+          </div>
+        </div>
+        <div class="compact-orb">
+          <div class="compact-orb-surface">
+            <div class="compact-rim"></div>
+            <div id="compactLiquidFill" class="compact-liquid-fill"></div>
+            <div class="compact-shine"></div>
+            <button id="compactBall" class="compact-open" type="button" title="显示完整面板" aria-label="显示完整面板">
+              <strong id="compactRemaining">--%</strong>
+              <span id="compactReset">5h 重置 --</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section class="detail-panel">
+        <div class="ambient ambient-a"></div>
+        <div class="ambient ambient-b"></div>
+
+        <header class="titlebar">
+          <div class="brand">
+            <span id="trafficLight" class="traffic-light loading" aria-hidden="true"></span>
+            <div>
+              <span id="brandName" class="brand-name">Codex 额度</span>
+              <span id="stateText" class="brand-state">读取中</span>
+            </div>
+          </div>
+          <div class="window-actions">
+            <button id="reportsBtn" class="icon-button" title="消耗报告" aria-label="消耗报告">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 17v-3M12 17v-6M16 17v-4" /></svg>
+            </button>
+            <button id="historyBtn" class="icon-button" title="额度历史" aria-label="额度历史">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 19V5M4 19h16M7 15l4-4 3 2 5-6" />
+              </svg>
+            </button>
+            <button id="settingsBtn" class="icon-button" title="设置" aria-label="设置">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 0 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.6V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.6h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.6 1h.1a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1z" />
+              </svg>
+            </button>
+            <button id="pinBtn" class="icon-button active" title="取消置顶" aria-label="取消置顶">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 4l6 6-3 1-4 4v4l-2 2-2-6-6-2 2-2h4l4-4 1-3z" />
+              </svg>
+            </button>
+            <button id="refreshBtn" class="icon-button" title="刷新" aria-label="刷新">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 12a8 8 0 0 1-13.7 5.7M4 12A8 8 0 0 1 17.7 6.3M17 3v4h-4M7 21v-4h4" />
+              </svg>
+            </button>
+            <button id="minimizeBtn" class="icon-button" title="收起" aria-label="收起">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h14" />
+              </svg>
+            </button>
+            <button id="closeBtn" class="icon-button danger" title="退出" aria-label="退出">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 6l12 12M18 6 6 18" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <section class="content">
+          <div id="liquidMeter" class="liquid-meter" aria-label="Codex 剩余额度">
+            <div class="glass-rim"></div>
+            <div id="liquidFill" class="liquid-fill">
+              <div class="wave wave-one"></div>
+              <div class="wave wave-two"></div>
+            </div>
+            <div class="shine"></div>
+            <div class="meter-copy">
+              <strong id="remaining">--%</strong>
+              <span id="remainingLabel">剩余</span>
+            </div>
+          </div>
+
+          <div class="quota-panel">
+            <div class="quota-card primary">
+              <span id="primaryLabel">5小时窗口</span>
+              <strong id="primaryText">--</strong>
+            </div>
+            <div class="quota-card">
+              <span id="secondaryLabel">7天窗口</span>
+              <strong id="secondaryText">--</strong>
+            </div>
+            <div class="quota-card slim">
+              <span id="planLabel">计划</span>
+              <strong id="planText">--</strong>
+            </div>
+          </div>
+        </section>
+
+        <footer class="status">
+          <div class="status-message">
+            <span id="statusDot" class="status-dot loading"></span>
+            <span id="statusText">正在读取 Codex 额度...</span>
+          </div>
+          <label class="auto-refresh">
+            <span id="autoRefreshLabel">自动刷新</span>
+            <select id="autoRefreshSelect" aria-label="自动刷新">
+              <option value="0">手动</option>
+              <option value="1">1分钟</option>
+              <option value="5">5分钟</option>
+              <option value="10">10分钟</option>
+              <option value="30">30分钟</option>
+              <option value="60">60分钟</option>
+            </select>
+          </label>
+        </footer>
+
+        <section id="settingsPanel" class="settings-panel" hidden>
+          <div class="settings-header">
+            <button id="settingsBackBtn" class="icon-button" title="返回" aria-label="返回">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <div>
+              <strong id="settingsTitle">设置</strong>
+              <span id="settingsSubtitle">界面与报警</span>
+            </div>
+          </div>
+
+          <div class="settings-scroll">
+            <div class="settings-list">
+            <label class="settings-row">
+              <span id="languageSettingLabel">语言</span>
+              <select id="languageSelect" aria-label="语言">
+                <option value="zh">中文</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="themeSettingLabel">主题</span>
+              <select id="themeSelect" aria-label="主题">
+                <option value="system">跟随系统</option>
+                <option value="light">浅色</option>
+                <option value="dark">深色</option>
+              </select>
+            </label>
+            <label class="settings-row settings-toggle-row">
+              <span id="autoUpdateSettingLabel">自动检查更新</span>
+              <input id="autoUpdateToggle" class="settings-toggle" type="checkbox" role="switch" aria-label="自动检查更新" />
+            </label>
+            <div class="settings-row palette-row" role="group" aria-labelledby="paletteSettingLabel">
+              <span id="paletteSettingLabel">配色</span>
+              <div class="palette-options">
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="blue" aria-label="经典蓝" />
+                  <span class="palette-swatch swatch-blue" aria-hidden="true"></span>
+                  <span class="palette-name">经典蓝</span>
+                </label>
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="jade" aria-label="青竹绿" />
+                  <span class="palette-swatch swatch-jade" aria-hidden="true"></span>
+                  <span class="palette-name">青竹绿</span>
+                </label>
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="rose" aria-label="玫瑰粉" />
+                  <span class="palette-swatch swatch-rose" aria-hidden="true"></span>
+                  <span class="palette-name">玫瑰粉</span>
+                </label>
+                <label class="palette-choice">
+                  <input type="radio" name="palette" value="graphite" aria-label="石墨灰" />
+                  <span class="palette-swatch swatch-graphite" aria-hidden="true"></span>
+                  <span class="palette-name">石墨灰</span>
+                </label>
+              </div>
+            </div>
+            <label class="settings-row default-view-row">
+              <span id="defaultDetailViewLabel">悬浮球默认打开页面</span>
+              <select id="defaultDetailViewSelect" aria-label="悬浮球默认打开页面">
+                <option value="main">额度概览</option>
+                <option value="history">消耗曲线</option>
+                <option value="reports">消耗报告</option>
+              </select>
+            </label>
+            <div class="settings-row update-status-row">
+              <span class="update-status-copy">
+                <span id="versionSettingLabel">版本更新</span>
+                <small id="updateStatusText" aria-live="polite">当前版本 v1.1.0</small>
+              </span>
+              <button id="checkUpdateBtn" class="settings-action-button" type="button">检查更新</button>
+            </div>
+            <label class="settings-row">
+              <span id="weeklyThresholdLabel">周额度报警</span>
+              <select id="weeklyThresholdSelect" aria-label="周额度报警">
+                <option value="1">1%</option>
+                <option value="3">3%</option>
+                <option value="5">5%</option>
+                <option value="10">10%</option>
+                <option value="15">15%</option>
+                <option value="20">20%</option>
+                <option value="25">25%</option>
+                <option value="30">30%</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="primaryTimeDisplayLabel">5小时额度时间</span>
+              <select id="primaryTimeDisplaySelect" aria-label="5小时额度时间">
+                <option value="duration">剩余时长</option>
+                <option value="point">重置时间点</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="secondaryTimeDisplayLabel">7天额度时间</span>
+              <select id="secondaryTimeDisplaySelect" aria-label="7天额度时间">
+                <option value="duration">剩余时长</option>
+                <option value="point">重置时间点</option>
+              </select>
+            </label>
+            <label class="settings-row">
+              <span id="compactTimeDisplayLabel">悬浮球时间</span>
+              <select id="compactTimeDisplaySelect" aria-label="悬浮球时间">
+                <option value="duration">剩余时长</option>
+                <option value="point">重置时间点</option>
+              </select>
+            </label>
+            <label class="settings-row settings-range-row">
+              <span>
+                <span id="compactSizeLabel">悬浮球大小</span>
+                <output id="compactSizeValue">120 px</output>
+              </span>
+              <input id="compactSizeRange" type="range" min="88" max="200" step="4" value="120" />
+            </label>
+            <label class="settings-row settings-range-row">
+              <span>
+                <span id="quotaFontSizeLabel">额度字号</span>
+                <output id="quotaFontSizeValue">27 px</output>
+              </span>
+              <input id="quotaFontSizeRange" type="range" min="20" max="64" step="1" value="27" />
+            </label>
+            <label class="settings-row settings-range-row">
+              <span>
+                <span id="resetFontSizeLabel">重置时间字号</span>
+                <output id="resetFontSizeValue">11 px</output>
+              </span>
+              <input id="resetFontSizeRange" type="range" min="9" max="24" step="1" value="11" />
+            </label>
+            <label id="regularRefreshRow" class="settings-row">
+              <span id="regularRefreshLabel">常规刷新</span>
+              <select id="regularRefreshSelect" aria-label="常规刷新">
+                <option value="0">手动</option>
+                <option value="1">1分钟</option>
+                <option value="5">5分钟</option>
+                <option value="10">10分钟</option>
+                <option value="30">30分钟</option>
+                <option value="60">60分钟</option>
+              </select>
+            </label>
+            <label class="settings-row settings-toggle-row">
+              <span id="smartEnabledLabel">智能启用</span>
+              <input id="smartEnabledToggle" class="settings-toggle" type="checkbox" role="switch" aria-label="智能启用" />
+            </label>
+            <div id="smartSettingsControls" class="smart-settings" hidden>
+              <label class="settings-row">
+                <span id="smartActiveRefreshLabel">活跃刷新间隔</span>
+                <select id="smartActiveRefreshSelect" aria-label="活跃刷新间隔">
+                  <option value="1">1分钟</option>
+                  <option value="5">5分钟</option>
+                  <option value="10">10分钟</option>
+                  <option value="30">30分钟</option>
+                  <option value="60">60分钟</option>
+                </select>
+              </label>
+              <label class="settings-row">
+                <span id="smartIdleTimeoutLabel">额度无变化持续</span>
+                <select id="smartIdleTimeoutSelect" aria-label="额度无变化持续">
+                  <option value="5">5分钟</option>
+                  <option value="10">10分钟</option>
+                  <option value="15">15分钟</option>
+                  <option value="30">30分钟</option>
+                  <option value="45">45分钟</option>
+                  <option value="60">60分钟</option>
+                  <option value="90">90分钟</option>
+                  <option value="120">120分钟</option>
+                </select>
+              </label>
+              <label class="settings-row">
+                <span id="smartIdleRefreshLabel">无变化后刷新</span>
+                <select id="smartIdleRefreshSelect" aria-label="无变化后刷新">
+                  <option value="0">手动</option>
+                  <option value="30">30分钟</option>
+                  <option value="60">60分钟</option>
+                </select>
+              </label>
+              <div class="settings-row smart-status-row">
+                <span id="smartStatusLabel">当前状态</span>
+                <strong id="smartStatusText">自动刷新</strong>
+              </div>
+            </div>
+            </div>
+            <p id="settingsHint" class="settings-hint">周额度低于所选百分比时，小球旁边会显示红色告警。</p>
+            <p id="smartSettingsHint" class="settings-hint smart-settings-hint" hidden></p>
+          </div>
+        </section>
+
+        <section id="historyPanel" class="history-panel" hidden>
+          <div class="history-header">
+            <button id="historyBackBtn" class="icon-button" title="返回" aria-label="返回">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <div>
+              <strong id="historyTitle">额度消耗</strong>
+              <span id="historySubtitle">每次刷新自动记录</span>
+            </div>
+            <button id="historyPinBtn" class="icon-button history-pin-button" type="button" title="置顶曲线并保持展开" aria-label="置顶曲线并保持展开" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 4l6 6-3 1-4 4v4l-2 2-2-6-6-2 2-2h4l4-4 1-3z" />
+              </svg>
+            </button>
+            <button id="historyExportBtn" class="icon-button history-export-button" type="button" title="导出记录" aria-label="导出记录">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3v12M8 11l4 4 4-4M5 20h14" />
+              </svg>
+            </button>
+            <div class="history-periods" role="tablist" aria-label="历史时间范围">
+              <button class="period-button" type="button" data-period="cycle">5h</button>
+              <button class="period-button active" type="button" data-period="day">日</button>
+              <button class="period-button" type="button" data-period="week">周</button>
+              <button class="period-button" type="button" data-period="month">月</button>
+            </div>
+          </div>
+          <div class="history-navigator">
+            <button id="historyPrevBtn" class="history-nav-button" type="button" aria-label="上一时段">‹</button>
+            <strong id="historyRangeLabel">--</strong>
+            <button id="historyNextBtn" class="history-nav-button" type="button" aria-label="下一时段">›</button>
+            <button id="historyZoomReset" class="icon-button history-reset" type="button" title="重置缩放" aria-label="重置缩放" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 3v7h7" /></svg>
+            </button>
+            <label class="history-metric-control">
+              <select id="historyMetricSelect" aria-label="纵轴显示">
+                <option value="used">消耗额度</option>
+                <option value="remaining">剩余额度</option>
+              </select>
+            </label>
+          </div>
+          <div class="history-chart-shell">
+            <canvas id="historyChart" width="928" height="300" aria-label="额度消耗折线图"></canvas>
+            <div id="historyEmpty" class="history-empty">这一时段还没有记录</div>
+            <div id="historyTooltip" class="history-tooltip" role="status" hidden>
+              <strong id="historyTooltipTime">--</strong>
+              <span id="historyTooltipPrimary">--</span>
+              <span id="historyTooltipSecondary">--</span>
+            </div>
+          </div>
+          <div class="history-legend">
+            <span id="historyPrimaryLegendItem"><i class="legend-primary"></i><span id="historyPrimaryLegend">5小时已用</span></span>
+            <span id="historySecondaryLegendItem"><i class="legend-secondary"></i><span id="historySecondaryLegend">7天已用</span></span>
+            <span id="historyPointCount">0 个记录点</span>
+            <label class="auto-refresh history-refresh">
+              <span id="historyAutoRefreshLabel">自动刷新</span>
+              <select id="historyAutoRefreshSelect" aria-label="自动刷新">
+                <option value="0">手动</option>
+                <option value="1">1分钟</option>
+                <option value="5">5分钟</option>
+                <option value="10">10分钟</option>
+                <option value="30">30分钟</option>
+                <option value="60">60分钟</option>
+              </select>
+            </label>
+          </div>
+        </section>
+        <section id="reportsPanel" class="reports-panel" hidden>
+          <div class="history-header">
+            <button id="reportsBackBtn" class="icon-button" type="button" title="返回" aria-label="返回">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
+            <div><strong id="reportsTitle">消耗报告</strong><span id="reportsSubtitle">本机记录的 tokens · 北京时间</span></div>
+            <button id="reportsRefreshBtn" class="icon-button" type="button" title="重新统计" aria-label="重新统计">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.7 5.7M4 12A8 8 0 0 1 17.7 6.3M17 3v4h-4M7 21v-4h4" /></svg>
+            </button>
+            <div class="history-periods" role="tablist" aria-label="报告时间范围">
+              <button class="period-button active" role="tab" type="button" data-report-period="day">日</button>
+              <button class="period-button" role="tab" type="button" data-report-period="week">周</button>
+              <button class="period-button" role="tab" type="button" data-report-period="month">月</button>
+            </div>
+          </div>
+          <div class="report-navigator">
+            <button id="reportsPrevBtn" class="history-nav-button" type="button" aria-label="上一时段">‹</button>
+            <strong id="reportsRange">--</strong>
+            <button id="reportsNextBtn" class="history-nav-button" type="button" aria-label="下一时段">›</button>
+            <input id="reportsDate" type="date" aria-label="选择日期" />
+          </div>
+          <div id="reportsScroll" class="reports-scroll" tabindex="0">
+            <div id="reportsStatus" class="report-notice" role="status"></div>
+            <div class="report-total"><span id="reportsTotalLabel">总 tokens</span><strong id="reportsTotal">--</strong></div>
+            <dl class="report-breakdown">
+              <div><dt id="reportsInputLabel">输入（含缓存）</dt><dd id="reportsInput">--</dd></div>
+              <div><dt id="reportsOutputLabel">输出（含推理）</dt><dd id="reportsOutput">--</dd></div>
+              <div><dt id="reportsCachedLabel">其中：缓存输入</dt><dd id="reportsCached">--</dd></div>
+              <div><dt id="reportsReasoningLabel">其中：推理输出</dt><dd id="reportsReasoning">--</dd></div>
+            </dl>
+            <p id="reportsCoverage" class="report-note"></p>
+            <table id="reportsTable" class="report-table"><thead><tr><th id="reportsDayLabel">日期</th><th>Tokens</th></tr></thead><tbody id="reportsDays"></tbody></table>
+            <p id="reportsCaveat" class="report-note"></p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./report-core.js"></script>
+    <script src="./bridge.js"></script>
+  </body>
+</html>

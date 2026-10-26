@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { execFileSync } = require("node:child_process");
-const { getTimeAxis, panViewport, zoomViewport } = require("../src/renderer/history-utils");
+const { getTimeAxis, panViewport, zoomViewport } = require("../ui/history-utils");
 const minute = 60000;
 const start = new Date(2026, 9, 3, 14, 3, 17).getTime();
 const x = (time, range, width = 440) => (time - range.start) / (range.end - range.start) * width;
@@ -60,7 +60,7 @@ test("zoom keeps the cursor time stationary while ticks change density", () => {
 
 test("daily ticks remain local midnight across daylight-saving transitions", () => {
   const output = execFileSync(process.execPath, ["-e", `
-    const {getTimeAxis}=require('./src/renderer/history-utils');
+    const {getTimeAxis}=require('./ui/history-utils');
     const range={start:new Date(2026,2,6).getTime(),end:new Date(2026,2,13).getTime()};
     const ticks=getTimeAxis(range,440).ticks;
     console.log(JSON.stringify(ticks.map(t=>({time:t.time,hour:new Date(t.time).getHours()}))));

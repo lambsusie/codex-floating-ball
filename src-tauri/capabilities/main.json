@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "Local prototype window only; no generic filesystem or shell access.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

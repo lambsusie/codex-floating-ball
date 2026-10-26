@@ -1,670 +1,85 @@
 # Codex Floating Ball
 
-> A lightweight, privacy-friendly desktop companion for monitoring local Codex CLI usage quotas on Windows and macOS.
+[English](README.en.md) | 中文
 
-[![Latest Release](https://img.shields.io/github/v/release/lambsusie/codex-floating-ball)](../../releases/latest)
-[![License: MIT](https://img.shields.io/github/license/lambsusie/codex-floating-ball)](LICENSE)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS-blue)
-![Electron](https://img.shields.io/badge/Electron-desktop%20app-blue)
+基于 [codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget) 二次开发的 Codex 桌面额度小组件。
 
-**[Download Latest Release](../../releases/latest)** · [中文](#中文说明) · [English](#english)
+## 2.0 轻量化测试版
 
-> **Privacy:** Codex Floating Ball reads quota information locally through the Codex CLI. It does not request, store, or upload your Codex Token.
+本分支将 v1.2.2 的功能迁移至 **Tauri + Rust + 系统 WebView**，不再随应用打包 Electron、Chromium 和 Node.js。当前版本为 **2.0.0-beta.1**，不是已完成长期验证的正式版。
 
-<p align="center">
-  <img
-    src="docs/images/codex-floating-ball-hero.png"
-    alt="Codex Floating Ball — desktop quota companion for Codex CLI"
-    width="100%"
-  >
-</p>
+- 可拖动悬浮球；单击展开，双击刷新；可独立调整球体和两种文字的大小。
+- 五小时／周额度、仅周额度账号、可调周额度告警、倒计时或重置时间点。
+- 自动刷新、智能活跃／闲置刷新、概览和曲线页面的刷新间隔同步。
+- 5h／日／周／月曲线、历史日期、左键平移、滚轮缩放、自适应刻度、悬停数值、剩余／消耗切换和 CSV 导出。
+- 本机 tokens 日／周／月报告，保留旧版去重和汇总算法。北京时间 23:59:59 触发扫描，跨日后补做结算；软件关闭时无法定时运行，下次启动会补扫本地日志。
+- 中文／英文、跟随系统的深浅模式、四套配色、默认详情页、曲线独立置顶、托盘和可关闭的更新通知。
+- macOS 构建源码包含菜单栏图标、玻璃效果和减少透明度适配；尚待 Mac 实机测试。
 
----
+## 下载和运行
 
-## 中文说明
+**推荐下载：[Windows x64 安装版](https://github.com/lambsusie/codex-floating-ball/releases/download/v2.0.0-beta.1/Codex-Floating-Ball-2.0.0-beta.1-win-x64-setup.exe)**。按提示安装；缺少 **Microsoft Edge WebView2 Runtime** 时会联网下载运行时，因此首次安装可能需要网络连接。
 
-Codex Floating Ball 是一个用于查看本机 Codex 使用额度的 Windows 与 macOS 桌面悬浮组件。
+已安装 WebView2 的用户可备选使用[单文件运行版](https://github.com/lambsusie/codex-floating-ball/releases/download/v2.0.0-beta.1/Codex-Floating-Ball-2.0.0-beta.1-win-x64.exe)。单文件版不会自行安装 WebView2，也不是把数据保存在 EXE 旁的完全便携模式。
 
-它以一个轻量悬浮球作为日常状态，需要更多信息时可以单击展开完整面板，查看额度、重置时间、刷新状态和相关设置。
+本次只发布 Windows x64，明确标记为 **Pre-release 测试版**，不提供 macOS 或 Linux 安装包。查看[发布说明及 SHA256 校验文件](https://github.com/lambsusie/codex-floating-ball/releases/tag/v2.0.0-beta.1)；需要稳定版时可继续使用 [v1.2.2](https://github.com/lambsusie/codex-floating-ball/releases/tag/v1.2.2)。源码保存在本 beta 分支，稳定版 `main` 不变。
 
-> 本项目 Fork 自 [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget)，在保留原项目 MIT 协议和 attribution 的基础上进行了独立的功能、交互与跨平台增强。感谢原项目作者。
+请先安装并登录官方 Codex 客户端，或安装可用的 Codex CLI。
 
-### 为什么做这个项目
+安装包的体积不包含系统共享的 WebView2、Codex 客户端，也不代表运行内存或全部磁盘占用。小组件不会捆绑第二份 Codex CLI。可通过 `CODEX_CLI_PATH` 指定 CLI 路径，通过 `CODEX_HOME` 指定日志根目录。
 
-在持续使用 Codex 时，频繁切换窗口查看剩余额度并不方便。
+建议先退出旧版小组件，再启动测试版，避免两个窗口同时采样。本测试版没有自动覆盖旧版程序，也不会自动安装新版本。更新提示只引导到本项目的 GitHub Releases。
 
-Codex Floating Ball 希望提供一个轻量、常驻桌面且尽量不打扰工作的 companion tool，让用户可以随时了解 Codex 剩余额度、重置时间和当前刷新状态。
+## 旧版数据迁移
 
-项目采用本地优先的方式读取额度信息：
+第一次启动会读取旧版配置和历史，并复制到新版独立目录：
 
-- 通过本机已登录的 Codex CLI 获取额度数据
-- 不要求用户输入 Codex Token
-- 不保存 Codex Token
-- 不上传 Codex Token
+| 平台 | 旧版目录 | 新版目录 |
+| --- | --- | --- |
+| Windows | `%APPDATA%\codex-floating-ball` | `%APPDATA%\io.github.lambsusie.codexfloatingball.v2` |
+| macOS | `~/Library/Application Support/codex-floating-ball` | `~/Library/Application Support/io.github.lambsusie.codexfloatingball.v2` |
 
----
+迁移包括额度历史、tokens 报告、统计索引、普通配置和 Electron 本地数据库中的界面偏好。读取数据库时操作的是副本，不修改旧目录。迁移状态记录在新版目录的 `migration.json` 中。
 
-### 项目亮点
+两个版本之后的新增记录**不会双向同步**。请保留旧版和备份；不要把用户数据目录、`qa/`、Codex 日志或凭据上传到 GitHub。若提示部分导入失败，保留两边目录并报告问题，不要先清空旧数据。
 
-#### v1.2.2：曲线页刷新控制与四套界面配色
+## 界面预览
 
-在消耗曲线右下角即可选择**手动、1、5、10、30、60 分钟**刷新间隔，与额度概览和设置同步，共用一个额度刷新计时器。智能启用进入低频或手动状态时，两处均显示实际间隔；选择分钟数可恢复活跃刷新并同步智能设置。图例与记录点数量保持可见，曲线置顶时也可操作。
+以下截图使用模拟数据，不包含真实账号额度或对话。
 
-设置新增**经典蓝、青竹绿、玫瑰粉、石墨灰**四套配色，立即生效并在重启后保留，覆盖悬浮球、概览、曲线、报告和设置。每套配色均支持浅色、深色及跟随系统，告警颜色独立保留。Windows 继续使用不透明圆角面板，macOS 保留原生材质和降低透明度时的不透明回退。升级保留原有设置、额度历史与 tokens 报告。
+![Windows 测试版消耗曲线](docs/images/v2.0.0-beta.1-chart-light.png)
+![四套配色和英文设置](docs/images/v2.0.0-beta.1-settings-dark-en.png)
+![本机 tokens 报告](docs/images/v2.0.0-beta.1-reports-light.png)
 
-<p align="center">
-  <img src="docs/images/v1.2.2-chart-refresh-zh.png" alt="v1.2.2 曲线页刷新间隔控制与青竹绿配色，演示数据" width="520">
-  <img src="docs/images/v1.2.2-color-palettes-zh.png" alt="v1.2.2 四套配色设置，演示数据" width="520">
-</p>
+## 本地构建
 
-#### v1.2.1：默认页面、自适应刻度与曲线独立置顶
+需要 Node.js 24、Rust stable，以及对应平台的 Tauri 编译依赖。Windows 还需 Visual Studio C++ Build Tools 和 Windows SDK；macOS 需 Xcode Command Line Tools。
 
-在设置中选择单击悬浮球后打开**额度概览、消耗曲线或消耗报告**，选择会保存，默认仍为额度概览；双击仍刷新额度。
-
-曲线、竖向时间网格和横轴标签现在随左键拖动同步移动。滚轮缩放时，刻度间隔与数量会根据时间跨度和空间自适应调整；可见跨度不超过 10 分钟时仅显示分钟，极短范围补充无标签细网格，完整时间保留在范围栏和悬停详情中，纵轴始终固定为 `0–100%`。
-
-曲线页的独立图钉可让曲线在操作其他窗口时保持展开。取消置顶后恢复失焦收起；主动收起或离开曲线页会结束本次置顶，不改变悬浮球自己的置顶设置。升级继续沿用原有设置、额度历史和本机 tokens 报告。
-
-<p align="center">
-  <img src="docs/images/v1.2.1-default-page-zh.png" alt="v1.2.1 默认打开页面设置，演示数据" width="520">
-  <img src="docs/images/v1.2.1-pinned-chart-zh.png" alt="v1.2.1 曲线独立置顶与同步时间网格，演示数据" width="520">
-</p>
-
-#### v1.2.0：本机 tokens 报告与历史曲线自由导航
-
-v1.2.0 新增本机 tokens 的 **日、周、月消耗报告**，可选择历史日期，查看总量、输入、缓存输入、输出和推理输出。后台每天在北京时间 `23:59:59` 开始结算，跨午夜补读最后一秒；错过结算后，会在下次启动或唤醒时自动补算。报告仅在主动打开时显示，后台统计独立于额度自动刷新。
-
-历史曲线支持在绘图区内滚轮缩放时间轴，以及按住鼠标左键直接抓住曲线拖动。无需先放大，曲线会跟随鼠标同方向、同距离移动，跨日期时自动加载前后记录；纵轴保持 `0–100%`，刷新保留视图，并可一键重置。
-
-托盘改用“规整缺口环 + 中心球”图标，Windows 按正常、告警、错误和暂无数据切换颜色，macOS 使用单色模板。同时完善普通关闭时收起悬浮球、意外销毁后的窗口重建和 Windows 任务栏恢复，并限制同一应用数据目录只运行一个实例。
-
-<p align="center">
-  <img src="docs/images/v1.2.0-token-reports-zh.png" alt="v1.2.0 本机 tokens 日报，使用合成测试数据" width="520">
-  <img src="docs/images/v1.2.0-history-navigation.png" alt="v1.2.0 历史曲线缩放与自由拖动" width="520">
-</p>
-
-#### v1.1.3：系统主题、液态玻璃与仅周额度模式
-
-v1.1.3 新增 **跟随系统** 主题选项，Windows 与 macOS 的浅色/深色外观会随系统设置实时切换，无需重启。macOS 完整界面同时加入原生动态材质与液态玻璃效果；开启“降低透明度”或运行环境不支持时，会自动回退到清晰的不透明界面。Windows 托盘和应用程序也换用清晰的多尺寸 Codex Floating Ball 图标，在浅色与深色任务栏中都更容易辨认。
-
-本版本还会根据实际可用的额度窗口调整界面。对于没有 5 小时限额的 Pro 账户或官方临时取消该限制的情况，完整面板显示“暂无限制”，悬浮球自动切换到周额度及其重置时间；周额度历史、智能刷新和周额度报警仍然有效。5 小时限制重新出现后，应用会自动恢复双额度显示。与此同时，周额度报警首次使用时的默认阈值也已修正为预期的 `5%`。
-
-#### v1.1.1：历史图表交互与 CSV 导出
-
-v1.1.1 进一步完善额度历史页面。图表现在可以在 **消耗额度** 与 **剩余额度** 之间自由切换，两种模式都使用统一的 `0–100%` 纵轴，并会记住最后一次选择。鼠标移到采样点附近时，悬停提示会显示具体采样时间以及 5 小时和 7 天额度的精确数值，并自动调整位置以避免超出图表边界。
-
-历史页面还新增 CSV 导出按钮，可将本机保存的全部有效记录导出到用户选择的位置。导出内容包括采样时间、两个额度窗口的剩余/已用百分比及重置时间，可直接使用 Excel 或其他表格软件打开。升级不会删除已有历史，记录仍只保存在本机。
-
-<p align="center">
-  <img
-    src="v1.1.1-feature-03-hover-details.png"
-    alt="v1.1.1 数据点悬停详情：显示采样时间、5 小时额度和 7 天额度"
-    width="100%"
-  >
-</p>
-
-#### v1.1.0：低频采样与更新提醒
-
-v1.1.0 扩展了智能刷新机制。额度在设定时间内没有变化后，可以切换为 **手动刷新、每 30 分钟采样或每 60 分钟采样**；低频采样检测到额度再次变化，或用户主动刷新后，会自动恢复活跃刷新间隔。主界面会显示当前实际刷新频率，重新选择分钟数也可以立即恢复活跃模式。
-
-应用还加入了可选的 GitHub Release 更新检查。自动检查默认开启，每 24 小时检查一次；发现新版本时会显示系统通知和设置按钮红点，也可以在设置页随时手动检查。该功能只访问本项目的 GitHub Releases API，不会发送额度、Codex Token 或账户信息。
-
-#### v1.0.0：额度历史与可调悬浮球
-
-v1.0.0 会在每次成功刷新时，将 5 小时和 7 天额度快照追加保存到本机应用数据目录。历史页面支持按 **日、周、月、5 小时周期** 查看两条额度消耗折线，并可前后切换到更早的时间段。
-
-悬浮球现在还可以分别调整：
-
-- 球体直径（`88–200 px`）
-- 额度数字字号
-- 重置时间字号
-
-应用会根据球体尺寸自动限制字号和布局，避免两行文字重叠。历史数据仅保存在本机，不会上传。
-
-#### 智能刷新
-
-普通的额度监控工具通常只能按照固定时间间隔持续轮询。Codex Floating Ball 提供了一套更适合实际 Codex 工作流的 **Smart Refresh / 智能刷新机制**。
-
-你可以分别设置：
-
-- **活跃刷新间隔**，例如每 `1 分钟` 自动刷新一次额度
-- **额度无变化超时**，用于判断当前是否已经停止持续使用 Codex
-
-在运行 Codex 项目或长任务期间，组件会按照设定的间隔持续更新额度，方便及时观察额度变化。
-
-如果经过设定时间后额度始终没有变化，组件会根据设置自动进入：
-
-**活跃刷新 → 手动模式或低频采样模式**
-
-低频采样可选择每 30 分钟或每 60 分钟检查一次。这样在 Codex 工作结束后，组件不会继续长期在后台按分钟重复查询，同时仍能发现新的额度变化。
-
-当你再次：
-
-- 双击悬浮球
-- 点击手动刷新
-
-智能自动刷新会重新启用。低频采样检测到额度变化时也会自动恢复活跃间隔。
-
-这使组件能够在两种状态之间自动切换：
-
-**活跃使用 Codex → 高频关注额度变化**
-
-**停止使用 Codex → 手动模式或低频采样，减少不必要的后台刷新**
-
-主界面的刷新间隔选择器与设置页面中的智能刷新配置保持同步，并会显示手动、30 分钟或 60 分钟等当前实际频率；重新选择分钟数即可恢复活跃刷新。
-
-#### 灵活的重置时间显示
-
-不同额度窗口适合不同的时间表达方式。
-
-Codex Floating Ball 支持对以下位置 **分别独立设置** 重置时间的显示方式：
-
-- 悬浮球
-- 5 小时额度
-- 7 天 / 周额度
-
-每一处都可以选择：
-
-**显示距离重置还有多久**
-
-例如：
-
-```text
-4小时12分
-```
-
-或者：
-
-**显示具体重置时刻**
-
-例如：
-
-```text
-08/18 08:15
-```
-
-三处设置互相独立。
-
-例如，你可以让：
-
-- 悬浮球显示具体重置时刻
-- 5 小时额度显示剩余小时
-- 周额度显示具体日期和时间
-
-这样既适合快速判断“还要多久恢复额度”，也方便根据具体重置时间规划后续 Codex 使用。
-
-> Codex 实际提供的额度窗口可能随官方策略发生变化。组件显示的额度数据以本机 Codex CLI 当前能够提供的信息为准。
-
----
-
-### 主要功能
-
-- 曲线页与概览共享刷新间隔控制，支持手动及 1／5／10／30／60 分钟，并同步智能刷新状态。
-- 经典蓝、青竹绿、玫瑰粉、石墨灰四套持久化配色，覆盖所有页面并支持浅色、深色和系统外观。
-- 可保存单击悬浮球默认打开的页面：额度概览、消耗曲线或消耗报告。
-- 曲线、时间网格和标签同步拖动，自适应时间刻度，以及不影响悬浮球置顶设置的曲线独立置顶。
-- 本机 tokens 日、周、月报告及历史日期选择，后台按北京时间日结，错过结算后自动补算。
-- 历史曲线支持滚轮缩放、左键自由拖动、跨日期加载及重置视图；右键不平移，刷新保留当前视图。
-- Windows 托盘图标显示正常、告警、错误和暂无数据四种状态，macOS 使用单色模板。
-- 普通窗口关闭时收起为悬浮球；托盘操作可重建意外销毁的窗口，并支持 Windows 任务栏重建后的恢复。
-- 以紧凑悬浮球作为默认桌面状态，快速查看剩余额度。
-- 单击悬浮球展开完整额度面板。
-- 双击悬浮球立即刷新额度。
-- 可直接拖动悬浮球到桌面任意位置，并自动记住位置。
-- 完整面板失去焦点后自动返回悬浮球状态。
-- 支持 5 小时和 7 天 / 周额度信息显示；没有 5 小时限额时，悬浮球自动显示周额度及其重置时间。
-- 自动识别仅有周额度的账户或临时无 5 小时限制的情况；完整面板显示“暂无限制”，限制恢复后自动切回双额度模式。
-- 自动记录每次成功刷新的额度快照，并按日、周、月或 5 小时周期显示历史曲线。
-- 仅周额度模式会继续记录周额度曲线，并保持智能刷新和周额度报警有效，不会把周额度误写入 5 小时历史曲线。
-- 支持回溯更早的历史周期；历史记录仅保存在本机应用数据目录。
-- 历史图表可切换显示消耗额度或剩余额度，并记住最后一次选择；两种模式均使用统一的 `0–100%` 刻度。
-- 鼠标悬停在历史采样点附近时，可查看采样时间以及 5 小时和 7 天额度的精确数值。
-- 可将全部有效历史记录导出为 CSV，包含采样时间、剩余/已用百分比和重置时间，文件只会写入用户选择的位置。
-- 悬浮球直径、额度字号和重置时间字号可分别调整，并自动避免文字重叠。
-- 悬浮球、5 小时额度和周额度可分别设置为显示剩余时间或具体重置时刻。
-- 支持智能刷新，可配置活跃刷新间隔、额度无变化超时和无变化后的采样频率。
-- 额度长期无变化后可切换为手动、30 分钟或 60 分钟低频采样；检测到额度变化、手动刷新或双击悬浮球后恢复活跃刷新。
-- 主界面的刷新间隔与设置页同步，并显示当前实际刷新频率。
-- 可选的自动更新检查每天查询一次 GitHub Releases；发现新版时显示系统通知和设置按钮红点，也支持手动检查。
-- 可设置周额度预警阈值。
-- 周额度低于设定阈值时，可通过额外告警提示提醒用户。
-- 支持中文 / English。
-- 支持浅色、深色或跟随系统主题，并实时响应 Windows 与 macOS 的系统外观变化。
-- macOS 完整界面使用原生动态材质与液态玻璃效果；开启“降低透明度”或环境不支持时自动回退到不透明界面。
-- Windows 使用清晰的多尺寸托盘和应用程序图标，不会在任务栏长期占用普通窗口位置。
-- 悬浮球采用高质量圆形渲染，在高分辨率和桌面缩放环境下保持更平滑的边缘效果。
-- Windows 与 macOS 均提供对应构建。
-
----
-
-### 下载与使用
-
-请前往 **[Releases](../../releases/latest)** 下载最新版本。
-
-| 平台 | 安装包 |
-| --- | --- |
-| Windows 10/11 x64 | `Codex-Floating-Ball-*-win-x64.exe` |
-| Apple Silicon Mac | `Codex-Floating-Ball-*-mac-arm64.dmg` |
-| Intel Mac | `Codex-Floating-Ball-*-mac-x64.dmg` |
-
-#### Windows
-
-1. 下载 Windows x64 `.exe`。
-2. 双击运行 Codex Floating Ball。
-3. 等待组件读取本机 Codex 使用额度。
-4. 拖动悬浮球到合适的位置。
-5. 单击查看详细额度和设置，双击立即刷新。
-
-#### macOS
-
-1. 根据 Mac 架构下载 Apple Silicon `arm64` 或 Intel `x64` `.dmg`。
-2. 打开 `.dmg`，将 Codex Floating Ball 拖入“应用程序”。
-3. 启动应用并等待读取本机 Codex 使用额度。
-
-当前 macOS 构建未使用 Apple Developer 证书签名或公证。
-
-如果首次启动被 macOS 阻止，请前往：
-
-**系统设置 → 隐私与安全性 → 仍要打开**
-
-> macOS 构建目前主要通过 GitHub Actions 生成，尚未在大量真实 Mac 设备上完成兼容性验证。如遇问题，欢迎通过 [Issues](../../issues) 反馈。
-
----
-
-### 运行要求
-
-- Windows 10/11，或 macOS 12 及以上版本
-- 本机已安装并登录 Codex CLI 或兼容的 Codex 桌面环境
-- Node.js 与 npm（仅从源码运行或构建时需要）
-
-本组件通过本机 Codex CLI 读取额度信息，不要求、不保存，也不会上传你的 Codex Token。
-
----
-
-### 本机 tokens 报告与数据保存
-
-点击完整面板顶部的报告图标，选择日、周、月或历史日期。统计读取本机 `$CODEX_HOME/sessions` 和 `archived_sessions` 中的用量记录，未设置 `CODEX_HOME` 时使用 `~/.codex`。按北京时间（UTC+8）归日，自然周从周一开始；当天未结算时显示待结算，本周、本月仅累计已结算日。
-
-总 tokens = 输入 + 输出；缓存已包含在输入中，推理已包含在输出中，不重复相加。归档副本、重复记录及可识别的继承累计量会去重。无记录不代表零用量，读取失败、日期不完整和无法归日的历史累计量会单独提示。报告表示本机可读取日志中的用量，不是账号所有设备的账单，也不是按额度百分比估算的数值。
-
-报告和用量元数据索引存储在 `token-reports.json`、`token-usage-index.json`；索引不保存对话正文，这些数据不会上传。Windows 数据目录为 `%APPDATA%/codex-floating-ball`，macOS 为 `~/Library/Application Support/codex-floating-ball`。退出旧版再运行新版，并保留应用数据目录，即可保留设置、额度历史及报告。“重新统计”可补读迟到的日志，后台统计不发送报告通知。
-
-### 从源码运行
-
-安装依赖：
-
-```bash
-npm install
-```
-
-启动：
-
-```bash
-npm start
-```
-
-运行测试：
-
-```bash
+```sh
+npm ci
 npm test
+cargo test --locked --manifest-path src-tauri/Cargo.toml
+npm run build
 ```
 
-生成 Windows x64 版本：
+macOS：
 
-```powershell
-npm run build:win
+```sh
+npm run build -- --bundles app,dmg
 ```
 
-生成 Intel 与 Apple Silicon macOS `.dmg`：
+`.github/workflows/build-desktop.yml` 可手动构建 Windows x64、Apple 芯片和 Intel Mac 安装包。该工作流只上传 Actions 构建产物，不会发布 Release。
 
-```bash
-npm run build:mac
-```
+macOS 默认使用临时签名（ad-hoc），**不是 Developer ID 签名或 Apple 公证**。构建步骤会检查签名完整性，但不能据此保证没有 Gatekeeper 提示。遇到恶意软件拦截时，应先检查来源和构建产物，不要关闭系统安全检查。
 
-生成用于本机测试的解包目录：
+## 测试和限制
 
-```bash
-npm run build:dir
-```
+Windows 已验证真实额度读取、旧版数据副本迁移、原算法 tokens 汇总一致性，以及模拟记录下的完整界面交互。具体记录见随测试包提供的验证说明。
 
-如果没有 Mac，可以在仓库的 **Actions** 页面手动运行 `Build macOS packages`，完成后下载对应的 `arm64` 和 `x64` 构建产物。
+macOS 尚未在本机编译或实机运行；跨显示器 DPI 切换、睡眠唤醒、Explorer 真正崩溃恢复、系统通知送达和连续多日运行仍需用户环境回归测试。暂不提供 Linux 发布包。
 
----
+`reference/` 保留 v1.2.2 的 tokens 算法用于生成和对照测试；运行包只包含提取后的浏览器算法，不包含这些 Node.js 模块或测试资料。
 
-### 参与贡献
+## 致谢
 
-Bug 报告、功能建议、文档改进和 Pull Request 都欢迎。
-
-开始贡献前请阅读：
-
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [SECURITY.md](SECURITY.md)
-
-如果发现可能涉及 Token、凭证、本地文件访问、命令执行或其他安全边界的问题，请不要在公开 Issue 中发布敏感信息。
-
----
-
-## English
-
-Codex Floating Ball is a Windows and macOS desktop companion for monitoring the usage quota of the locally installed Codex CLI.
-
-It stays compact as a floating desktop ball during normal use and expands into a detailed quota panel when more information or controls are needed.
-
-> This project is a fork and independently maintained enhanced edition of [xicunwus2025-sys/codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget). It retains the upstream MIT license and attribution while adding independent functionality, interaction improvements, and cross-platform support.
-
-### Why this project exists
-
-Frequently switching windows just to check remaining Codex quota is inconvenient during active development.
-
-Codex Floating Ball provides a lightweight, always-available desktop companion for keeping quota status, reset timing, and refresh state visible without interrupting the coding workflow.
-
-The project follows a local-first approach:
-
-- Quota information is read through the locally installed Codex CLI
-- It does not ask for your Codex Token
-- It does not store your Codex Token
-- It does not upload your Codex Token
-
----
-
-### Highlights
-
-#### v1.2.2: chart refresh controls and four color palettes
-
-Choose **Manual, 1, 5, 10, 30, or 60 minutes** directly in the chart footer. The chart, overview, and settings stay synchronized and share one quota refresh timer. Both selectors reflect the actual active, idle, or manual smart-refresh state; choosing a positive interval resumes active refresh and updates its setting. Legends and record counts remain visible, including while the chart is pinned.
-
-Settings now offers **Classic blue, Jade green, Rose pink, and Graphite**. Palettes apply immediately, persist after restart, and coordinate the ball, overview, chart, reports, and settings. Each supports light, dark, and system-following appearance; warning colors remain independent. Opaque rounded Windows panels, native macOS materials, and the Reduce Transparency fallback are retained. Existing settings, quota history, and token reports remain intact when upgrading.
-
-<p align="center">
-  <img src="docs/images/v1.2.2-chart-refresh-en.png" alt="v1.2.2 chart refresh controls with the Rose pink dark palette, demo data" width="520">
-</p>
-
-#### v1.2.1: default page, adaptive ticks, and independent chart pinning
-
-Choose and save the page opened by a single click on the ball: **quota overview, usage chart, or usage reports**. The default remains the overview; double-click still refreshes quota.
-
-Curves, vertical time grids, and labels now move together during left-button dragging. Wheel zoom adapts tick spacing and density to the visible time span and available space. Views of ten minutes or less use minute-only labels, with unlabeled fine grids at close zoom levels. Full timestamps remain in the range and hover details, and the Y axis stays at `0–100%`.
-
-The chart's independent pin keeps it expanded while working in other windows. Unpinning restores collapse on focus loss; collapsing or leaving the chart ends its pin session without changing the ball's own pin setting. Upgrading retains settings, quota history, and local-token reports.
-
-<p align="center">
-  <img src="docs/images/v1.2.1-adaptive-chart-en.png" alt="v1.2.1 adaptive minute ticks using demo data" width="520">
-</p>
-
-#### v1.2.0: local-token reports and free chart navigation
-
-Version 1.2.0 adds **daily, weekly, and monthly local-token reports** with historical date selection and input, cached-input, output, and reasoning breakdowns. Daily settlement starts at `23:59:59` Beijing time, with a final read after midnight. Missed settlements catch up after restart or resume. Reports appear only when opened, and background settlement runs independently of quota auto-refresh.
-
-History charts now support wheel zoom and direct left-button dragging on the time axis. The curve follows the pointer pixel for pixel in either direction, even without zooming, and adjacent dates load automatically. The vertical axis stays at `0–100%`, refreshing preserves the view, and Reset view restores the selected period.
-
-A new concentric gap-ring and centered-ball tray icon provides four Windows status colors and a monochrome macOS template. Ordinary close requests collapse the ball, tray interaction recreates a destroyed window, and taskbar exclusion is restored after the Windows shell rebuilds. One instance is allowed per app-data directory.
-
-<p align="center">
-  <img src="docs/images/v1.2.0-token-reports-en.png" alt="v1.2.0 local-token daily report using synthetic test data" width="520">
-  <img src="docs/images/v1.2.0-history-navigation.png" alt="v1.2.0 history chart zoom and direct dragging" width="520">
-</p>
-
-#### v1.1.3: system themes, liquid glass, and weekly-only quota mode
-
-Version 1.1.3 adds a **Follow system** theme option, allowing the Windows and macOS interfaces to switch between light and dark appearance immediately without restarting. The macOS detail panel now uses native dynamic material with a liquid-glass treatment and automatically falls back to a clear opaque surface when Reduce Transparency is enabled or the environment does not support the effect. Windows also receives a recognizable multi-size Codex Floating Ball icon for the tray and executable.
-
-The app now adapts to the quota windows that are actually available. For Pro accounts or temporary periods without an official 5-hour limit, the detail panel reports no current limit while the floating ball switches to weekly quota and reset information. Weekly history, Smart Refresh, and weekly alerts remain active, and the dual-window display returns automatically if the 5-hour limit reappears. This release also fixes the initial weekly-alert threshold so it uses the documented `5%` default.
-
-#### v1.1.1: interactive history charts and CSV export
-
-Version 1.1.1 expands the history view with a selector for **quota used** or **quota remaining**. Both modes share a consistent `0–100%` vertical scale, and the latest selection is remembered. Hovering near a recorded point shows its timestamp and the exact 5-hour and 7-day values; the tooltip repositions itself to stay inside the chart.
-
-The history page also adds CSV export for every valid local record. Exports include timestamps, remaining and used percentages for both quota windows, and their reset times, and are written only to the location selected by the user. Existing history is preserved during upgrades and remains local.
-
-<p align="center">
-  <img
-    src="v1.1.1-feature-03-hover-details.png"
-    alt="v1.1.1 chart hover details showing the timestamp and exact 5-hour and 7-day quota values"
-    width="100%"
-  >
-</p>
-
-#### v1.1.0: idle sampling and update notifications
-
-Version 1.1.0 extends Smart Refresh with **Manual, 30-minute, and 60-minute idle sampling modes** after quota remains unchanged for the configured period. A detected quota change or a manual refresh automatically restores the active interval. The main selector shows the actual current refresh frequency, and selecting a minute interval resumes active mode immediately.
-
-The app also adds an optional GitHub Release update check. Automatic checks are enabled by default and run once every 24 hours. A newer release triggers a system notification and a badge on the Settings button, while a manual check remains available. This feature only contacts this project's GitHub Releases API and does not send quota data, Codex Tokens, or account information.
-
-#### v1.0.0: quota history and a resizable floating ball
-
-Version 1.0.0 appends a local snapshot of the 5-hour and 7-day quotas after every successful refresh. The history view plots both consumption series by **day, week, month, or 5-hour cycle**, with navigation to earlier periods.
-
-The compact widget now provides independent controls for:
-
-- Floating-ball diameter (`88–200 px`)
-- Quota-value font size
-- Reset-time font size
-
-The app constrains typography and layout to the selected ball size so the two text rows do not overlap. History data remains on the local device and is not uploaded.
-
-#### Smart refresh
-
-Traditional quota monitors often poll continuously at a fixed interval. Codex Floating Ball includes a configurable **Smart Refresh** mechanism designed around real periods of active and inactive Codex usage.
-
-You can configure:
-
-- An **active refresh interval**, for example once every `1 minute`
-- A **quota inactivity timeout**, used to detect when active Codex usage has stopped
-
-While Codex tasks are running, the widget refreshes at the selected interval so quota changes can be monitored closely.
-
-If the quota remains unchanged for the configured period, the app switches from:
-
-**active refresh → manual mode or low-frequency sampling**
-
-Low-frequency sampling can run every 30 or 60 minutes. This prevents unnecessary minute-by-minute background polling after active Codex work has finished while still allowing the app to detect renewed quota activity.
-
-Smart refresh automatically becomes active again when idle sampling detects a quota change or when you:
-
-- Double-click the floating ball
-- Trigger a manual refresh
-
-The result is a workflow that naturally adapts between:
-
-**Active Codex usage → frequent quota monitoring**
-
-**Inactive period → quieter manual or low-frequency sampling mode**
-
-The refresh interval selector in the main panel stays synchronized with the Smart Refresh settings and shows the actual Manual, 30-minute, or 60-minute state. Selecting a minute interval resumes active refresh.
-
-#### Flexible reset-time display
-
-Different quota windows are easier to understand using different representations of reset time.
-
-Codex Floating Ball lets you independently configure the reset-time display for:
-
-- The floating ball
-- The 5-hour quota
-- The 7-day / weekly quota
-
-Each can display either:
-
-**Time remaining until reset**
-
-For example:
-
-```text
-4h 12m
-```
-
-or:
-
-**The exact reset time**
-
-For example:
-
-```text
-08/18 08:15
-```
-
-These settings are independent.
-
-For example, you can configure:
-
-- The floating ball to show the exact reset time
-- The 5-hour quota to show time remaining
-- The weekly quota to show its scheduled date and time
-
-This makes it easy both to answer “how long until reset?” at a glance and to plan future Codex usage around a specific reset time.
-
-> The quota windows exposed by Codex may change over time. Codex Floating Ball displays the quota information currently available from the locally installed Codex CLI.
-
----
-
-### Features
-
-- Synchronized chart/overview refresh selectors: Manual or 1/5/10/30/60 minutes, sharing one quota timer and smart-refresh state.
-- Four persisted palettes—Classic blue, Jade green, Rose pink, and Graphite—across all views, with light/dark/system appearance.
-- Save the default page opened by a single click: quota overview, usage chart, or usage reports.
-- Synchronized curve/grid/label panning, adaptive time ticks, and independent chart pinning without changing the ball's pin preference.
-- Daily, weekly, and monthly local-token reports with historical dates, Beijing-time settlement, and catch-up after downtime.
-- Wheel zoom, direct left-button panning, adjacent-date loading, and reset controls for history charts; right-click does not pan and refresh preserves the view.
-- Four Windows tray states: normal, warning, error, and offline, plus a monochrome macOS template.
-- Ordinary close requests collapse the ball, tray interaction recreates a destroyed window, and Windows taskbar rebuilding restores taskbar exclusion.
-- Compact floating-ball desktop mode for quickly viewing remaining quota.
-- Single-click the floating ball to open the detailed quota panel.
-- Double-click the ball to refresh immediately.
-- Drag the floating ball anywhere on the desktop; its position is remembered.
-- The detailed panel automatically returns to compact mode when it loses focus.
-- Support for 5-hour and 7-day / weekly quota information, with automatic weekly-quota display when no 5-hour limit is available.
-- Capability-based detection for weekly-only accounts and temporary no-5-hour-limit periods; the detail panel reports no current limit and returns to dual-window mode automatically when the limit reappears.
-- Local quota snapshots after every successful refresh, with day, week, month, and 5-hour-cycle history charts.
-- Weekly-only mode continues recording weekly history and keeps Smart Refresh and weekly alerts active without copying weekly values into the 5-hour history series.
-- Navigation to earlier history periods; quota history remains in the local application-data directory.
-- Switch history charts between quota used and quota remaining on a consistent `0–100%` scale; the latest selection is remembered.
-- Hover near a history point to see its timestamp and the exact 5-hour and 7-day quota values.
-- Export every valid history record to CSV with timestamps, remaining/used percentages, and reset times; files are written only to the user-selected location.
-- Independent controls for floating-ball diameter, quota font size, and reset-time font size, with automatic overlap prevention.
-- Independent reset-time display settings for the floating ball, 5-hour quota, and weekly quota.
-- Smart Refresh with configurable active interval, quota-inactivity timeout, and idle sampling frequency.
-- Manual, 30-minute, or 60-minute idle sampling after quota remains unchanged; active refresh resumes after a detected change, manual refresh, or double-click.
-- Main-panel refresh controls stay synchronized with the settings page and show the actual current frequency.
-- Optional daily GitHub Release update checks with system notifications, a Settings badge, and manual checking.
-- Adjustable weekly-quota alert threshold.
-- Additional warning notification when weekly quota falls below the configured threshold.
-- Chinese and English interface.
-- Light, dark, and live system-following themes on Windows and macOS.
-- Native macOS dynamic material with a liquid-glass treatment and an automatic opaque fallback for Reduce Transparency or unsupported environments.
-- A visible multi-size Windows tray and executable icon without keeping a normal application window permanently in the taskbar.
-- Smooth floating-ball rendering designed for high-resolution and scaled desktop environments.
-- Windows and macOS builds.
-
----
-
-### Download and use
-
-Download the latest version from **[Releases](../../releases/latest)**.
-
-| Platform | Package |
-| --- | --- |
-| Windows 10/11 x64 | `Codex-Floating-Ball-*-win-x64.exe` |
-| Apple silicon Mac | `Codex-Floating-Ball-*-mac-arm64.dmg` |
-| Intel Mac | `Codex-Floating-Ball-*-mac-x64.dmg` |
-
-#### Windows
-
-1. Download the Windows x64 `.exe`.
-2. Run Codex Floating Ball.
-3. Wait for the widget to read the locally available Codex quota.
-4. Drag the floating ball to your preferred desktop position.
-5. Single-click for details and settings, or double-click to refresh.
-
-#### macOS
-
-1. Download the `arm64` package for Apple silicon or the `x64` package for an Intel Mac.
-2. Open the `.dmg` and drag Codex Floating Ball into Applications.
-3. Launch the application and wait for it to read the locally available Codex quota.
-
-The current macOS builds are unsigned and are not notarized with an Apple Developer certificate.
-
-If macOS blocks the first launch, open:
-
-**System Settings → Privacy & Security → Open Anyway**
-
-> macOS packages are currently built primarily through GitHub Actions and have not yet been validated across a broad range of physical Mac hardware. Compatibility reports are welcome through [Issues](../../issues).
-
----
-
-### Requirements
-
-- Windows 10/11 or macOS 12+
-- Codex CLI or a compatible Codex desktop environment installed locally and already signed in
-- Node.js and npm only when running or building from source
-
-Codex Floating Ball reads quota information from the locally installed Codex CLI. It does not request, store, or upload your Codex Token.
-
----
-
-### Local-token reports and data storage
-
-Open the report icon in the detail panel and select a day, week, month, or historical date. Reports read local usage records from `$CODEX_HOME/sessions` and `archived_sessions`, defaulting to `~/.codex`. Reporting uses Beijing time (UTC+8) and Monday-based calendar weeks. Today remains pending until settlement; current week/month totals include settled days only.
-
-Total tokens = input + output. Cached input is already part of input, and reasoning is already part of output. Archived copies, duplicate events, and identifiable inherited totals are deduplicated. Missing records do not mean zero usage. Read failures, imprecise timestamps, and undated historical totals are flagged separately. Reports describe readable local records, not account-wide billing or estimates converted from quota percentages.
-
-Reports and the usage-metadata index are stored in `token-reports.json` and `token-usage-index.json`. Conversation text is not retained in the index, and these files are not uploaded. Windows stores data in `%APPDATA%/codex-floating-ball`; macOS uses `~/Library/Application Support/codex-floating-ball`. Quit the old version before launching the new one and retain this directory to preserve settings, quota history, and reports. Recalculate catches up on late-written logs; settlement sends no report notifications.
-
-### Build from source
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Start the app:
-
-```bash
-npm start
-```
-
-Run tests:
-
-```bash
-npm test
-```
-
-Build the Windows x64 package:
-
-```powershell
-npm run build:win
-```
-
-Build Intel and Apple silicon macOS packages:
-
-```bash
-npm run build:mac
-```
-
-Build an unpacked application directory:
-
-```bash
-npm run build:dir
-```
-
-If you do not have access to a Mac, you can manually run `Build macOS packages` from the repository's **Actions** page and download the generated `arm64` and `x64` artifacts.
-
----
-
-### Contributing
-
-Bug reports, feature requests, documentation improvements, and pull requests are welcome.
-
-Please read:
-
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [SECURITY.md](SECURITY.md)
-
-For vulnerabilities or issues involving credentials, tokens, local file access, command execution, or another security boundary, please avoid publishing sensitive details in a public issue.
-
----
-
-## License and attribution
-
-This repository is a GitHub fork of [codex-led-widget](https://github.com/xicunwus2025-sys/codex-led-widget), maintained as an independently enhanced edition.
-
-Upstream code and this fork are distributed under the MIT License. See [LICENSE](LICENSE) for details.
+本项目不是完全原创，也不是 OpenAI 官方产品。保留上游项目来源与现有 MIT 许可证，感谢原项目作者及贡献者。

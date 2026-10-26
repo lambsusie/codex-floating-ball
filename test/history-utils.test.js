@@ -5,7 +5,7 @@ const {
   buildQuotaSeries,
   getPeriodRange,
   shiftPeriod
-} = require("../src/renderer/history-utils");
+} = require("../ui/history-utils");
 
 test("builds local day and five-hour ranges", () => {
   const anchor = new Date(2026, 7, 27, 12, 30);
